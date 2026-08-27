@@ -19,10 +19,13 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Full Interactive Gameplay Engine...');
+console.log('⚡ Initializing Aetheria Game Engine...');
 
-// Setup Canvas and Renderer
+// Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
 const renderer = new Canvas2DRenderer(canvas);
 const particleSystem = new ParticleSystem(800);
 const lightingEngine = new LightingEngine(canvas.width, canvas.height);
@@ -33,17 +36,17 @@ const world = new World();
 world.addSystem(new MovementSystem());
 world.addSystem(new PhysicsSystem());
 
-// Player State
+// Player State Variables
 let playerGold = 250;
 let playerExp = 0;
 let playerMaxExp = 500;
 let playerLevel = 1;
 let questKills = 0;
 
-// Create Hero Player Entity
+// Create Hero Entity
 const player = world.createEntity('PlayerArchmage');
-world.addComponent(player.id, new TransformComponent(300, 300));
-world.addComponent(player.id, new VelocityComponent(0, 0, 350, 0.82));
+world.addComponent(player.id, new TransformComponent(600, 600));
+world.addComponent(player.id, new VelocityComponent(0, 0, 380, 0.82));
 world.addComponent(player.id, new RenderComponent('player', 40, 40, '#38bdf8', 10));
 world.addComponent(player.id, new HealthComponent(500, 500));
 world.addComponent(player.id, new StatsComponent(15, 20, 12, 10));
@@ -51,7 +54,7 @@ world.addComponent(player.id, new StatsComponent(15, 20, 12, 10));
 let playerMana = 300;
 const maxMana = 300;
 
-// Setup Inventory & Equip
+// Inventory
 const playerInventory = new Inventory(24);
 playerInventory.addItem(ItemDatabase.createItem('sword_aether')!);
 playerInventory.addItem(ItemDatabase.createItem('staff_arcane')!);
@@ -79,12 +82,11 @@ const renderInventory = () => {
 renderInventory();
 
 // Attach Player Light & Particle Emitters
-const playerLight = lightingEngine.addLight(new PointLight(300, 300, 320, '#38bdf8', 0.9));
-const auraEmitter = particleSystem.createEmitter(300, 300);
+const playerLight = lightingEngine.addLight(new PointLight(600, 600, 320, '#38bdf8', 0.9));
+const auraEmitter = particleSystem.createEmitter(600, 600);
 auraEmitter.emitRate = 15;
 auraEmitter.color = '#38bdf8';
 
-// Camera tracking
 const playerPos = () => world.getComponent(player.id, TransformComponent)!.position;
 renderer.camera.target = playerPos();
 
@@ -94,7 +96,14 @@ const dungeonHeight = 35;
 const tileSize = 64;
 let dungeonGrid = BSPDungeonGenerator.generate(dungeonWidth, dungeonHeight, 99);
 
-// Spawn Enemies in Dungeon
+// Ensure starting area is open floor
+for (let rx = 5; rx <= 12; rx++) {
+  for (let ry = 5; ry <= 12; ry++) {
+    dungeonGrid[rx][ry] = 1;
+  }
+}
+
+// Spawn Monsters
 const spawnMonster = (type: string, x: number, y: number) => {
   const mob = world.createEntity(`Monster_${type}_${Date.now()}`);
   world.addComponent(mob.id, new TransformComponent(x, y));
@@ -109,26 +118,24 @@ const spawnMonster = (type: string, x: number, y: number) => {
   lightingEngine.addLight(new PointLight(x, y, 150, isLich ? '#a855f7' : '#ef4444', 0.6));
 };
 
-// Populate initial monsters
-for (let i = 0; i < 10; i++) {
-  const mx = (3 + (i * 3) % 28) * tileSize;
-  const my = (3 + (i * 5) % 28) * tileSize;
+for (let i = 0; i < 12; i++) {
+  const mx = (4 + (i * 3) % 26) * tileSize;
+  const my = (4 + (i * 5) % 26) * tileSize;
   spawnMonster(i % 3 === 0 ? 'lich' : i % 2 === 0 ? 'goblin' : 'skeleton', mx, my);
 }
 
-// Keyboard Controls State
+// Keyboard Input Handler (Prevent Page Scrolling!)
 const keys: Record<string, boolean> = {};
 
 window.addEventListener('keydown', (e) => {
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+    e.preventDefault(); // Prevent browser scrolling
+  }
+
   keys[e.key] = true;
   AudioManager.getInstance().init();
 
-  // Attack with SPACEBAR
-  if (e.code === 'Space') {
-    castMeleeAttack();
-  }
-
-  // Spell Hotbar 1-5
+  if (e.code === 'Space') castMeleeAttack();
   if (e.key === '1') castFireball();
   if (e.key === '2') castFrostNova();
   if (e.key === '3') castLightning();
@@ -139,6 +146,44 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => {
   keys[e.key] = false;
 });
+
+// Clickable On-Screen Action Hotbar Slots
+document.getElementById('slot-attack')?.addEventListener('click', castMeleeAttack);
+document.getElementById('slot-1')?.addEventListener('click', castFireball);
+document.getElementById('slot-2')?.addEventListener('click', castFrostNova);
+document.getElementById('slot-3')?.addEventListener('click', castLightning);
+document.getElementById('slot-4')?.addEventListener('click', castAetherShield);
+document.getElementById('slot-5')?.addEventListener('click', usePotion);
+
+// On-Screen Virtual D-Pad Controller Handling (Mouse & Touch)
+const dpadPress: Record<string, boolean> = { up: false, down: false, left: false, right: false };
+
+const setupDpadBtn = (id: string, dir: string) => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+
+  const startMove = (e: Event) => {
+    e.preventDefault();
+    dpadPress[dir] = true;
+    AudioManager.getInstance().init();
+  };
+
+  const stopMove = (e: Event) => {
+    e.preventDefault();
+    dpadPress[dir] = false;
+  };
+
+  btn.addEventListener('mousedown', startMove);
+  btn.addEventListener('mouseup', stopMove);
+  btn.addEventListener('mouseleave', stopMove);
+  btn.addEventListener('touchstart', startMove);
+  btn.addEventListener('touchend', stopMove);
+};
+
+setupDpadBtn('btn-move-up', 'up');
+setupDpadBtn('btn-move-down', 'down');
+setupDpadBtn('btn-move-left', 'left');
+setupDpadBtn('btn-move-right', 'right');
 
 // Interactive Level Editor Canvas Clicking
 canvas.addEventListener('click', (e) => {
@@ -152,12 +197,12 @@ canvas.addEventListener('click', (e) => {
   const tool = uiManager.activeEditorTool;
   if (tool === 'paint') {
     if (gx >= 0 && gx < dungeonWidth && gy >= 0 && gy < dungeonHeight) {
-      dungeonGrid[gx][gy] = 0; // Wall
+      dungeonGrid[gx][gy] = 0;
       renderer.addFloatingText('Wall Painted', worldPos.x, worldPos.y, '#fde047');
     }
   } else if (tool === 'floor') {
     if (gx >= 0 && gx < dungeonWidth && gy >= 0 && gy < dungeonHeight) {
-      dungeonGrid[gx][gy] = 1; // Floor
+      dungeonGrid[gx][gy] = 1;
       renderer.addFloatingText('Floor Painted', worldPos.x, worldPos.y, '#38bdf8');
     }
   } else if (tool === 'spawn-mob') {
@@ -169,7 +214,15 @@ canvas.addEventListener('click', (e) => {
   }
 });
 
-// Button Handlers for Skill Matrix & Quests
+// Window Resize Listener
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  renderer.resize(window.innerWidth, window.innerHeight);
+  lightingEngine.resize(window.innerWidth, window.innerHeight);
+});
+
+// UI Upgrades & Quest Buttons
 document.querySelectorAll('.btn-upgrade-skill').forEach(btn => {
   btn.addEventListener('click', () => {
     playerGold += 100;
@@ -191,7 +244,7 @@ document.getElementById('btn-gen-new-dungeon')?.addEventListener('click', () => 
   renderer.addFloatingText('Dungeon Regenerated!', playerPos().x, playerPos().y - 30, '#38bdf8');
 });
 
-// Combat Abilities Implementation
+// Spells & Combat Functions
 function castMeleeAttack(): void {
   SoundSynth.playSwordSwing();
   renderer.camera.shake(0.15, 6);
@@ -204,15 +257,13 @@ function castMeleeAttack(): void {
     if (mob.id === player.id) continue;
 
     const mPos = world.getComponent(mob.id, TransformComponent)!.position;
-    if (pPos.distanceTo(mPos) < 90) {
+    if (pPos.distanceTo(mPos) < 100) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
-      const dmg = Math.floor(40 + Math.random() * 30);
+      const dmg = Math.floor(45 + Math.random() * 35);
       hp.takeDamage(dmg);
       renderer.addFloatingText(`-${dmg}`, mPos.x, mPos.y - 15, '#ef4444');
 
-      if (!hp.isAlive()) {
-        killMonster(mob.id, mPos);
-      }
+      if (!hp.isAlive()) killMonster(mob.id, mPos);
     }
   }
 }
@@ -232,15 +283,13 @@ function castFireball(): void {
     if (mob.id === player.id) continue;
 
     const mPos = world.getComponent(mob.id, TransformComponent)!.position;
-    if (pPos.distanceTo(mPos) < 220) {
+    if (pPos.distanceTo(mPos) < 230) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
-      const dmg = Math.floor(80 + Math.random() * 40);
+      const dmg = Math.floor(85 + Math.random() * 45);
       hp.takeDamage(dmg);
       renderer.addFloatingText(`🔥 -${dmg}`, mPos.x, mPos.y - 20, '#f97316');
 
-      if (!hp.isAlive()) {
-        killMonster(mob.id, mPos);
-      }
+      if (!hp.isAlive()) killMonster(mob.id, mPos);
     }
   }
 }
@@ -258,10 +307,10 @@ function castFrostNova(): void {
     if (mob.id === player.id) continue;
 
     const mPos = world.getComponent(mob.id, TransformComponent)!.position;
-    if (pPos.distanceTo(mPos) < 180) {
+    if (pPos.distanceTo(mPos) < 190) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
-      hp.takeDamage(55);
-      renderer.addFloatingText(`❄️ FROZEN -55`, mPos.x, mPos.y - 20, '#38bdf8');
+      hp.takeDamage(60);
+      renderer.addFloatingText(`❄️ FROZEN -60`, mPos.x, mPos.y - 20, '#38bdf8');
 
       if (!hp.isAlive()) killMonster(mob.id, mPos);
     }
@@ -281,10 +330,10 @@ function castLightning(): void {
     if (mob.id === player.id) continue;
 
     const mPos = world.getComponent(mob.id, TransformComponent)!.position;
-    if (pPos.distanceTo(mPos) < 250) {
+    if (pPos.distanceTo(mPos) < 260) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
-      hp.takeDamage(95);
-      renderer.addFloatingText(`⚡ -95`, mPos.x, mPos.y - 20, '#eab308');
+      hp.takeDamage(100);
+      renderer.addFloatingText(`⚡ -100`, mPos.x, mPos.y - 20, '#eab308');
 
       if (!hp.isAlive()) killMonster(mob.id, mPos);
     }
@@ -297,8 +346,8 @@ function castAetherShield(): void {
 
   SoundSynth.playSpellCast();
   const hp = world.getComponent(player.id, HealthComponent)!;
-  hp.shield += 120;
-  renderer.addFloatingText(`🛡️ +120 Shield`, playerPos().x, playerPos().y - 25, '#38bdf8');
+  hp.shield += 130;
+  renderer.addFloatingText(`🛡️ +130 Shield`, playerPos().x, playerPos().y - 25, '#38bdf8');
 }
 
 function usePotion(): void {
@@ -330,26 +379,31 @@ function killMonster(id: number, pos: Vector2): void {
   }
 }
 
+// Initial Floating Welcome Banner
+setTimeout(() => {
+  renderer.addFloatingText('✨ Game Ready! Press WASD / Arrow Keys or Click D-Pad to move!', 600, 550, '#fde047');
+}, 500);
+
 // Main Game Loop Update
 function update(dt: number): void {
   const vel = world.getComponent(player.id, VelocityComponent);
   const pPos = playerPos();
 
-  // Player Movement Controls
+  // Combine Keyboard & Virtual D-Pad Movement Controls
   if (vel) {
     const move = new Vector2();
-    if (keys['w'] || keys['W'] || keys['ArrowUp']) move.y -= 1;
-    if (keys['s'] || keys['S'] || keys['ArrowDown']) move.y += 1;
-    if (keys['a'] || keys['A'] || keys['ArrowLeft']) move.x -= 1;
-    if (keys['d'] || keys['D'] || keys['ArrowRight']) move.x += 1;
+    if (keys['w'] || keys['W'] || keys['ArrowUp'] || dpadPress.up) move.y -= 1;
+    if (keys['s'] || keys['S'] || keys['ArrowDown'] || dpadPress.down) move.y += 1;
+    if (keys['a'] || keys['A'] || keys['ArrowLeft'] || dpadPress.left) move.x -= 1;
+    if (keys['d'] || keys['D'] || keys['ArrowRight'] || dpadPress.right) move.x += 1;
 
     if (move.lengthSq() > 0) {
-      move.normalize().multiplyScalar(450);
+      move.normalize().multiplyScalar(460);
       vel.velocity.add(move);
     }
   }
 
-  // Enemy AI: Pursue player & attack when close
+  // Enemy AI Movement & Attack
   const mobs = world.query(new Query({ all: [TransformComponent, VelocityComponent, HealthComponent] }));
 
   for (let i = 0; i < mobs.length; i++) {
@@ -360,20 +414,19 @@ function update(dt: number): void {
     const mVel = world.getComponent(mob.id, VelocityComponent)!;
     const dist = mPos.distanceTo(pPos);
 
-    if (dist < 400 && dist > 40) {
-      const dir = new Vector2().subVectors(pPos, mPos).normalize().multiplyScalar(120);
+    if (dist < 420 && dist > 45) {
+      const dir = new Vector2().subVectors(pPos, mPos).normalize().multiplyScalar(130);
       mVel.velocity.add(dir);
-    } else if (dist <= 40) {
-      // Monster attacks player!
+    } else if (dist <= 45) {
       const playerHp = world.getComponent(player.id, HealthComponent)!;
-      playerHp.takeDamage(5 * dt * 10);
+      playerHp.takeDamage(5 * dt * 8);
       renderer.camera.shake(0.05, 3);
     }
   }
 
   // Mana Regen
   if (playerMana < maxMana) {
-    playerMana = Math.min(maxMana, playerMana + 15 * dt);
+    playerMana = Math.min(maxMana, playerMana + 18 * dt);
   }
 
   // Update ECS Systems
@@ -404,4 +457,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Game Mechanics Fully Loaded & Interactive!');
+console.log('✅ Aetheria Game Engine Running & Virtual Controls Activated!');

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Aetheria: Realms of Fate - Action RPG & Game Engine</title>
   <link rel="stylesheet" href="/src/styles/main.css">
   <link rel="stylesheet" href="/src/styles/ui.css">
@@ -48,7 +48,7 @@
         </div>
 
         <div class="header-controls">
-          <button id="btn-guide" class="ui-btn gold" title="How To Play (H)">📖 How To Play</button>
+          <button id="btn-guide" class="ui-btn gold" title="How To Play (H)">📖 Guide</button>
           <button id="btn-inventory" class="ui-btn" title="Inventory (I)">🎒 Inventory</button>
           <button id="btn-skills" class="ui-btn" title="Skill Tree (K)">📜 Skills</button>
           <button id="btn-quest" class="ui-btn" title="Quest Log (Q)">🗡️ Quests</button>
@@ -57,36 +57,52 @@
         </div>
       </div>
 
+      <!-- On-Screen Virtual D-Pad & Clickable Controls for Mouse/Touch -->
+      <div id="virtual-dpad" class="glass-panel">
+        <div class="dpad-title">🕹️ Move Hero</div>
+        <div class="dpad-grid">
+          <div></div>
+          <button class="dpad-btn" id="btn-move-up">▲</button>
+          <div></div>
+          <button class="dpad-btn" id="btn-move-left">◄</button>
+          <div class="dpad-center">🧙‍♂️</div>
+          <button class="dpad-btn" id="btn-move-right">►</button>
+          <div></div>
+          <button class="dpad-btn" id="btn-move-down">▼</button>
+          <div></div>
+        </div>
+      </div>
+
       <!-- Action Bar & Attack Controls -->
       <div id="hud-footer">
         <div class="action-bar-container">
           <div class="action-bar" id="skill-hotbar">
-            <div class="hotbar-slot" data-slot="space" id="slot-attack">
+            <div class="hotbar-slot attack-slot" id="slot-attack">
               <span class="slot-key">SPACE</span>
               <div class="slot-icon">⚔️</div>
               <span class="slot-label">Attack</span>
             </div>
-            <div class="hotbar-slot" data-slot="1" id="slot-1">
+            <div class="hotbar-slot" id="slot-1">
               <span class="slot-key">1</span>
               <div class="slot-icon">🔥</div>
               <span class="slot-label">Fireball</span>
             </div>
-            <div class="hotbar-slot" data-slot="2" id="slot-2">
+            <div class="hotbar-slot" id="slot-2">
               <span class="slot-key">2</span>
               <div class="slot-icon">❄️</div>
               <span class="slot-label">Frost Nova</span>
             </div>
-            <div class="hotbar-slot" data-slot="3" id="slot-3">
+            <div class="hotbar-slot" id="slot-3">
               <span class="slot-key">3</span>
               <div class="slot-icon">⚡</div>
               <span class="slot-label">Lightning</span>
             </div>
-            <div class="hotbar-slot" data-slot="4" id="slot-4">
+            <div class="hotbar-slot" id="slot-4">
               <span class="slot-key">4</span>
               <div class="slot-icon">🛡️</div>
               <span class="slot-label">Shield</span>
             </div>
-            <div class="hotbar-slot" data-slot="5" id="slot-5">
+            <div class="hotbar-slot" id="slot-5">
               <span class="slot-key">5</span>
               <div class="slot-icon">🧪</div>
               <span class="slot-label">Potion</span>
@@ -97,19 +113,8 @@
 
       <!-- MiniMap Window -->
       <div id="minimap-container" class="glass-panel">
-        <canvas id="minimap-canvas" width="160" height="160"></canvas>
+        <canvas id="minimap-canvas" width="150" height="150"></canvas>
         <div class="zone-name" id="zone-text">Aetheria Catacombs - Floor 1</div>
-      </div>
-
-      <!-- Quick Controls On-Screen Guide Box -->
-      <div id="quick-controls-box" class="glass-panel">
-        <div class="guide-header">🎮 Quick Key Controls</div>
-        <div class="guide-row"><span class="kbd">W A S D</span> / <span class="kbd">↑ ↓ ← →</span> : Move Hero</div>
-        <div class="guide-row"><span class="kbd">SPACE</span> : Melee Sword Attack</div>
-        <div class="guide-row"><span class="kbd">1</span> <span class="kbd">2</span> <span class="kbd">3</span> <span class="kbd">4</span> : Cast Spells</div>
-        <div class="guide-row"><span class="kbd">5</span> : Heal Potion</div>
-        <div class="guide-row"><span class="kbd">I</span> : Inventory | <span class="kbd">K</span> : Skills</div>
-        <div class="guide-row"><span class="kbd">Q</span> : Quests | <span class="kbd">E</span> : Editor</div>
       </div>
 
       <!-- Interactive Modals / Windows -->
@@ -122,86 +127,51 @@
             <button class="close-btn">&times;</button>
           </div>
           <div class="window-body guide-content">
-            <h4>🎮 Keyboard Controls & Keys</h4>
+            <h4>🎮 2 Ways To Play & Controls</h4>
+            <p style="margin-bottom: 12px; color: #fde047; font-size: 0.9rem;">
+              You can play using <strong>Keyboard Keys</strong> OR <strong>Mouse / Touch Screen Buttons</strong> on screen!
+            </p>
             <table class="guide-table">
               <thead>
                 <tr>
-                  <th>Key / Shortcut</th>
+                  <th>Control Method</th>
+                  <th>Key / Button</th>
                   <th>Action</th>
-                  <th>Description</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td><span class="kbd">W</span> <span class="kbd">A</span> <span class="kbd">S</span> <span class="kbd">D</span> or <span class="kbd">Arrow Keys</span></td>
-                  <td>Movement</td>
-                  <td>Move your hero around the dungeon map.</td>
+                  <td>Keyboard / Arrow Keys</td>
+                  <td><span class="kbd">W</span> <span class="kbd">A</span> <span class="kbd">S</span> <span class="kbd">D</span> or <span class="kbd">↑</span> <span class="kbd">↓</span> <span class="kbd">←</span> <span class="kbd">→</span></td>
+                  <td>Move Hero on Map</td>
                 </tr>
                 <tr>
-                  <td><span class="kbd">SPACE</span></td>
-                  <td>Melee Sword Attack</td>
-                  <td>Swings your sword to hit nearby enemies.</td>
+                  <td>Mouse Click / Touch</td>
+                  <td>🕹️ On-Screen D-Pad (Bottom-Left)</td>
+                  <td>Click buttons to move Hero</td>
                 </tr>
                 <tr>
-                  <td><span class="kbd">1</span></td>
-                  <td>Fireball Spell</td>
-                  <td>Hurls an explosive fireball dealing high fire damage.</td>
+                  <td>Melee Attack</td>
+                  <td><span class="kbd">SPACEBAR</span> or Click ⚔️ Attack Slot</td>
+                  <td>Sword attack nearby monsters</td>
                 </tr>
                 <tr>
-                  <td><span class="kbd">2</span></td>
-                  <td>Frost Nova Spell</td>
-                  <td>Freezes surrounding monsters and slows them down.</td>
+                  <td>Spells 1 - 4</td>
+                  <td><span class="kbd">1</span> <span class="kbd">2</span> <span class="kbd">3</span> <span class="kbd">4</span> or Click Spell Icons</td>
+                  <td>Fireball 🔥, Frost Nova ❄️, Lightning ⚡, Shield 🛡️</td>
                 </tr>
                 <tr>
-                  <td><span class="kbd">3</span></td>
-                  <td>Chain Lightning</td>
-                  <td>Unleashes a electric bolt hitting multiple targets.</td>
+                  <td>Heal Potion</td>
+                  <td><span class="kbd">5</span> or Click Potion Icon 🧪</td>
+                  <td>Restore +150 HP</td>
                 </tr>
                 <tr>
-                  <td><span class="kbd">4</span></td>
-                  <td>Aether Barrier Shield</td>
-                  <td>Absorbs incoming enemy damage with a light shield.</td>
-                </tr>
-                <tr>
-                  <td><span class="kbd">5</span></td>
-                  <td>Use Health Potion</td>
-                  <td>Instantly restores 150 Health Points.</td>
-                </tr>
-                <tr>
-                  <td><span class="kbd">I</span></td>
-                  <td>Inventory Window</td>
-                  <td>Manage items, weapons, armors, and potions.</td>
-                </tr>
-                <tr>
-                  <td><span class="kbd">K</span></td>
-                  <td>Skill Matrix</td>
-                  <td>View skill trees and spend points to upgrade spells.</td>
-                </tr>
-                <tr>
-                  <td><span class="kbd">Q</span></td>
-                  <td>Quest Chronicle</td>
-                  <td>Track current active quests and claim rewards.</td>
-                </tr>
-                <tr>
-                  <td><span class="kbd">E</span></td>
-                  <td>Level Editor Studio</td>
-                  <td>Paint dungeon tiles, place monsters, export maps.</td>
-                </tr>
-                <tr>
-                  <td><span class="kbd">ESC</span></td>
-                  <td>Close Windows</td>
-                  <td>Closes any active modal window.</td>
+                  <td>Open Windows</td>
+                  <td><span class="kbd">I</span> (Inventory) | <span class="kbd">K</span> (Skills) | <span class="kbd">Q</span> (Quests) | <span class="kbd">E</span> (Editor)</td>
+                  <td>Toggle Inventory, Skill Tree, Quest Log, Level Studio</td>
                 </tr>
               </tbody>
             </table>
-
-            <h4 style="margin-top: 20px;">⚔️ How To Play & Progression</h4>
-            <ol class="guide-steps">
-              <li><strong>Explore & Fight:</strong> Navigate the dungeon to encounter monsters (Skeleton Warriors 💀, Goblin Berserkers 👺, Shadow Liches 🧙‍♂️).</li>
-              <li><strong>Gain XP & Level Up:</strong> Defeating monsters rewards XP & Gold. Each Level Up restores HP/MP and boosts your Stats.</li>
-              <li><strong>Loot & Inventory:</strong> Open Inventory (<span class="kbd">I</span>) to equip weapons/armors or use health potions.</li>
-              <li><strong>In-Game Level Editor:</strong> Press <span class="kbd">E</span> to paint tiles or spawn extra monsters anywhere on the map!</li>
-            </ol>
           </div>
         </div>
 
@@ -213,15 +183,15 @@
           </div>
           <div class="window-body inventory-grid-layout">
             <div class="equipment-paperdoll">
-              <div class="equip-slot" data-type="helmet" id="equip-helmet">🪖 Helmet</div>
-              <div class="equip-slot" data-type="armor" id="equip-armor">🛡️ Armor</div>
-              <div class="equip-slot" data-type="weapon" id="equip-weapon">🗡️ Weapon</div>
-              <div class="equip-slot" data-type="offhand" id="equip-offhand">🪄 Offhand</div>
-              <div class="equip-slot" data-type="boots" id="equip-boots">👢 Boots</div>
-              <div class="equip-slot" data-type="ring" id="equip-ring">💍 Ring</div>
+              <div class="equip-slot" id="equip-helmet">🪖 Helmet</div>
+              <div class="equip-slot" id="equip-armor">🛡️ Armor</div>
+              <div class="equip-slot" id="equip-weapon">🗡️ Weapon</div>
+              <div class="equip-slot" id="equip-offhand">🪄 Offhand</div>
+              <div class="equip-slot" id="equip-boots">👢 Boots</div>
+              <div class="equip-slot" id="equip-ring">💍 Ring</div>
             </div>
             <div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Click item to use/equip</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Click item to use or equip</div>
               <div class="inventory-slots" id="inventory-grid"></div>
             </div>
           </div>
@@ -271,7 +241,7 @@
           </div>
           <div class="window-body quest-layout">
             <div class="quest-list" id="quest-list-items">
-              <div class="quest-item active" id="q-1">
+              <div class="quest-item active">
                 <h4>Cleansing the Catacombs</h4>
                 <p>Vanquish 5 Skeleton Warriors in Catacombs Floor 1.</p>
                 <div class="quest-progress">Progress: <span id="q-progress">0</span> / 5</div>
@@ -289,10 +259,10 @@
           </div>
           <div class="window-body editor-tools">
             <div class="editor-toolbar">
-              <button class="tool-btn active" data-tool="paint" id="tool-paint">🖌️ Paint Wall</button>
-              <button class="tool-btn" data-tool="floor" id="tool-floor">🧹 Paint Floor</button>
-              <button class="tool-btn" data-tool="spawn-mob" id="tool-mob">👾 Spawn Skeleton</button>
-              <button class="tool-btn" data-tool="spawn-boss" id="tool-boss">🧙‍♂️ Spawn Lich Boss</button>
+              <button class="tool-btn active" id="tool-paint">🖌️ Paint Wall</button>
+              <button class="tool-btn" id="tool-floor">🧹 Paint Floor</button>
+              <button class="tool-btn" id="tool-mob">👾 Spawn Skeleton</button>
+              <button class="tool-btn" id="tool-boss">🧙‍♂️ Spawn Lich Boss</button>
               <button class="tool-btn gold" id="btn-gen-new-dungeon">🎲 Regenerate Dungeon</button>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">

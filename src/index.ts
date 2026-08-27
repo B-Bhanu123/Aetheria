@@ -19,7 +19,7 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Game Engine...');
+console.log('⚡ Initializing Aetheria Full Screen Centered Game Engine...');
 
 // Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -43,22 +43,30 @@ let playerMaxExp = 500;
 let playerLevel = 1;
 let questKills = 0;
 
-// Create Hero Entity
+// Create Hero Entity at Center of Map (1200, 1200)
+const spawnX = 1200;
+const spawnY = 1200;
+
 const player = world.createEntity('PlayerArchmage');
-world.addComponent(player.id, new TransformComponent(600, 600));
-world.addComponent(player.id, new VelocityComponent(0, 0, 380, 0.82));
-world.addComponent(player.id, new RenderComponent('player', 40, 40, '#38bdf8', 10));
+world.addComponent(player.id, new TransformComponent(spawnX, spawnY));
+world.addComponent(player.id, new VelocityComponent(0, 0, 420, 0.82));
+world.addComponent(player.id, new RenderComponent('player', 44, 44, '#38bdf8', 10));
 world.addComponent(player.id, new HealthComponent(500, 500));
 world.addComponent(player.id, new StatsComponent(15, 20, 12, 10));
 
 let playerMana = 300;
 const maxMana = 300;
 
+// Force Camera to immediately center on Hero Spawn Position (Fixes black top-left screen issue!)
+const playerPos = () => world.getComponent(player.id, TransformComponent)!.position;
+renderer.camera.position.set(spawnX, spawnY);
+renderer.camera.target = playerPos();
+
 // Inventory
 const playerInventory = new Inventory(24);
 playerInventory.addItem(ItemDatabase.createItem('sword_aether')!);
 playerInventory.addItem(ItemDatabase.createItem('staff_arcane')!);
-playerInventory.addItem(ItemDatabase.createItem('potion_health', 8)!);
+playerInventory.addItem(ItemDatabase.createItem('potion_health', 10)!);
 playerInventory.addItem(ItemDatabase.createItem('ring_shadow')!);
 
 const renderInventory = () => {
@@ -82,47 +90,55 @@ const renderInventory = () => {
 renderInventory();
 
 // Attach Player Light & Particle Emitters
-const playerLight = lightingEngine.addLight(new PointLight(600, 600, 320, '#38bdf8', 0.9));
-const auraEmitter = particleSystem.createEmitter(600, 600);
-auraEmitter.emitRate = 15;
+const playerLight = lightingEngine.addLight(new PointLight(spawnX, spawnY, 400, '#38bdf8', 1.0));
+const auraEmitter = particleSystem.createEmitter(spawnX, spawnY);
+auraEmitter.emitRate = 18;
 auraEmitter.color = '#38bdf8';
 
-const playerPos = () => world.getComponent(player.id, TransformComponent)!.position;
-renderer.camera.target = playerPos();
-
-// Generate Dungeon Map
-const dungeonWidth = 35;
-const dungeonHeight = 35;
+// Generate Large 60x60 Dungeon Map Grid (3840x3840 pixels)
+const dungeonWidth = 60;
+const dungeonHeight = 60;
 const tileSize = 64;
-let dungeonGrid = BSPDungeonGenerator.generate(dungeonWidth, dungeonHeight, 99);
+let dungeonGrid: number[][] = [];
 
-// Ensure starting area is open floor
-for (let rx = 5; rx <= 12; rx++) {
-  for (let ry = 5; ry <= 12; ry++) {
-    dungeonGrid[rx][ry] = 1;
+const generateFullDungeon = (seed: number) => {
+  const map = BSPDungeonGenerator.generate(dungeonWidth, dungeonHeight, seed);
+  // Ensure large open floor around player spawn (center 10..30 tiles)
+  for (let rx = 10; rx <= 30; rx++) {
+    for (let ry = 10; ry <= 30; ry++) {
+      map[rx][ry] = 1; // Floor
+    }
   }
-}
+  return map;
+};
 
-// Spawn Monsters
+dungeonGrid = generateFullDungeon(101);
+
+// Spawn Monsters immediately around player view
 const spawnMonster = (type: string, x: number, y: number) => {
   const mob = world.createEntity(`Monster_${type}_${Date.now()}`);
   world.addComponent(mob.id, new TransformComponent(x, y));
-  world.addComponent(mob.id, new VelocityComponent(0, 0, 140 + Math.random() * 60, 0.85));
+  world.addComponent(mob.id, new VelocityComponent(0, 0, 150 + Math.random() * 50, 0.85));
 
   const isLich = type === 'lich';
   const isGoblin = type === 'goblin';
 
-  world.addComponent(mob.id, new RenderComponent(type, isLich ? 44 : 36, isLich ? 44 : 36, isLich ? '#a855f7' : isGoblin ? '#22c55e' : '#ef4444', 5));
+  world.addComponent(mob.id, new RenderComponent(type, isLich ? 46 : 38, isLich ? 46 : 38, isLich ? '#a855f7' : isGoblin ? '#22c55e' : '#ef4444', 5));
   world.addComponent(mob.id, new HealthComponent(isLich ? 300 : isGoblin ? 150 : 100));
 
-  lightingEngine.addLight(new PointLight(x, y, 150, isLich ? '#a855f7' : '#ef4444', 0.6));
+  lightingEngine.addLight(new PointLight(x, y, 180, isLich ? '#a855f7' : '#ef4444', 0.7));
 };
 
-for (let i = 0; i < 12; i++) {
-  const mx = (4 + (i * 3) % 26) * tileSize;
-  const my = (4 + (i * 5) % 26) * tileSize;
-  spawnMonster(i % 3 === 0 ? 'lich' : i % 2 === 0 ? 'goblin' : 'skeleton', mx, my);
-}
+// Spawn 15 monsters surrounding player in initial view!
+const offsets = [
+  { x: -300, y: -200 }, { x: 300, y: -180 }, { x: -250, y: 250 }, { x: 280, y: 220 },
+  { x: -400, y: 0 }, { x: 400, y: 0 }, { x: 0, y: -350 }, { x: 0, y: 350 },
+  { x: -180, y: -300 }, { x: 200, y: -280 }, { x: -350, y: 300 }, { x: 350, y: -320 }
+];
+
+offsets.forEach((off, i) => {
+  spawnMonster(i % 3 === 0 ? 'lich' : i % 2 === 0 ? 'goblin' : 'skeleton', spawnX + off.x, spawnY + off.y);
+});
 
 // Keyboard Input Handler (Prevent Page Scrolling!)
 const keys: Record<string, boolean> = {};
@@ -240,7 +256,7 @@ document.getElementById('btn-claim-quest')?.addEventListener('click', () => {
 });
 
 document.getElementById('btn-gen-new-dungeon')?.addEventListener('click', () => {
-  dungeonGrid = BSPDungeonGenerator.generate(dungeonWidth, dungeonHeight, Math.floor(Math.random() * 1000));
+  dungeonGrid = generateFullDungeon(Math.floor(Math.random() * 1000));
   renderer.addFloatingText('Dungeon Regenerated!', playerPos().x, playerPos().y - 30, '#38bdf8');
 });
 
@@ -257,7 +273,7 @@ function castMeleeAttack(): void {
     if (mob.id === player.id) continue;
 
     const mPos = world.getComponent(mob.id, TransformComponent)!.position;
-    if (pPos.distanceTo(mPos) < 100) {
+    if (pPos.distanceTo(mPos) < 110) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
       const dmg = Math.floor(45 + Math.random() * 35);
       hp.takeDamage(dmg);
@@ -283,7 +299,7 @@ function castFireball(): void {
     if (mob.id === player.id) continue;
 
     const mPos = world.getComponent(mob.id, TransformComponent)!.position;
-    if (pPos.distanceTo(mPos) < 230) {
+    if (pPos.distanceTo(mPos) < 250) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
       const dmg = Math.floor(85 + Math.random() * 45);
       hp.takeDamage(dmg);
@@ -307,7 +323,7 @@ function castFrostNova(): void {
     if (mob.id === player.id) continue;
 
     const mPos = world.getComponent(mob.id, TransformComponent)!.position;
-    if (pPos.distanceTo(mPos) < 190) {
+    if (pPos.distanceTo(mPos) < 210) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
       hp.takeDamage(60);
       renderer.addFloatingText(`❄️ FROZEN -60`, mPos.x, mPos.y - 20, '#38bdf8', 1.3);
@@ -330,7 +346,7 @@ function castLightning(): void {
     if (mob.id === player.id) continue;
 
     const mPos = world.getComponent(mob.id, TransformComponent)!.position;
-    if (pPos.distanceTo(mPos) < 260) {
+    if (pPos.distanceTo(mPos) < 280) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
       hp.takeDamage(100);
       renderer.addFloatingText(`⚡ -100`, mPos.x, mPos.y - 20, '#eab308', 1.5);
@@ -368,12 +384,13 @@ function killMonster(id: number, pos: Vector2): void {
 
   renderer.addFloatingText('+80 XP +40 Gold', pos.x, pos.y, '#fde047', 1.2);
 
-  // Respawn a new monster so the dungeon is always full of action!
+  // Respawn a new monster surrounding player
   setTimeout(() => {
-    const rx = (4 + Math.floor(Math.random() * 25)) * tileSize;
-    const ry = (4 + Math.floor(Math.random() * 25)) * tileSize;
+    const p = playerPos();
+    const rx = p.x + (Math.random() - 0.5) * 600;
+    const ry = p.y + (Math.random() - 0.5) * 600;
     spawnMonster(Math.random() > 0.5 ? 'goblin' : 'skeleton', rx, ry);
-  }, 3000);
+  }, 2000);
 
   if (playerExp >= playerMaxExp) {
     playerLevel++;
@@ -386,9 +403,9 @@ function killMonster(id: number, pos: Vector2): void {
   }
 }
 
-// Initial Floating Welcome Banner
+// Welcome Banner immediately centered
 setTimeout(() => {
-  renderer.addFloatingText('✨ Game Ready! Use WASD or D-Pad to move & attack!', 600, 550, '#fde047', 1.4);
+  renderer.addFloatingText('✨ Game Ready! Press WASD / Arrow Keys or Click D-Pad to move!', spawnX, spawnY - 60, '#fde047', 1.4);
 }, 300);
 
 // Main Game Loop Update
@@ -421,7 +438,7 @@ function update(dt: number): void {
     const mVel = world.getComponent(mob.id, VelocityComponent)!;
     const dist = mPos.distanceTo(pPos);
 
-    if (dist < 420 && dist > 45) {
+    if (dist < 450 && dist > 45) {
       const dir = new Vector2().subVectors(pPos, mPos).normalize().multiplyScalar(130);
       mVel.velocity.add(dir);
     } else if (dist <= 45) {
@@ -468,4 +485,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Game Engine Running & Live Gameplay Active!');
+console.log('✅ Aetheria Centered Live Game Engine Running Successfully!');

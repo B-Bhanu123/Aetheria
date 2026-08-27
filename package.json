@@ -1,0 +1,17 @@
+{
+  "name": "aetheria-rpg-engine",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Aetheria: Realms of Fate - High Performance HTML5/WebGL RPG & Engine",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "node --loader ts-node/esm tests/testRunner.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "vite": "^4.4.5"
+  }
+}

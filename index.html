@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aetheria: Realms of Fate - WebGL / Canvas RPG & Engine</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+  <link rel="stylesheet" href="/src/styles/ui.css">
+  <link rel="stylesheet" href="/src/styles/editor.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Main Render Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Overlay UI Layer -->
+    <div id="ui-container">
+      <!-- HUD Header Bar -->
+      <div id="hud-header" class="glass-panel">
+        <div class="character-portrait">
+          <div class="portrait-avatar" id="player-avatar">🧙‍♂️</div>
+          <div class="portrait-details">
+            <h2 id="player-name">Archmage Valerius</h2>
+            <div class="level-badge">LVL <span id="player-level">1</span></div>
+          </div>
+        </div>
+
+        <div class="status-bars">
+          <div class="bar-container health">
+            <div class="bar-label">HP</div>
+            <div class="bar-fill" id="hp-bar" style="width: 100%;"></div>
+            <span class="bar-value" id="hp-text">500 / 500</span>
+          </div>
+          <div class="bar-container mana">
+            <div class="bar-label">MP</div>
+            <div class="bar-fill" id="mp-bar" style="width: 100%;"></div>
+            <span class="bar-value" id="mp-text">300 / 300</span>
+          </div>
+          <div class="bar-container exp">
+            <div class="bar-label">XP</div>
+            <div class="bar-fill" id="exp-bar" style="width: 0%;"></div>
+            <span class="bar-value" id="exp-text">0 / 1000</span>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <button id="btn-inventory" class="ui-btn" title="Inventory (I)">🎒 Inventory</button>
+          <button id="btn-skills" class="ui-btn" title="Skill Tree (K)">📜 Skills</button>
+          <button id="btn-quest" class="ui-btn" title="Quest Log (Q)">🗡️ Quests</button>
+          <button id="btn-editor" class="ui-btn gold" title="Level Editor (E)">⚒️ Level Editor</button>
+          <button id="btn-settings" class="ui-btn icon-btn">⚙️</button>
+        </div>
+      </div>
+
+      <!-- Action Bar & Controls -->
+      <div id="hud-footer">
+        <div class="action-bar" id="skill-hotbar">
+          <div class="hotbar-slot" data-slot="1"><span class="slot-key">1</span><div class="slot-icon">🔥</div></div>
+          <div class="hotbar-slot" data-slot="2"><span class="slot-key">2</span><div class="slot-icon">❄️</div></div>
+          <div class="hotbar-slot" data-slot="3"><span class="slot-key">3</span><div class="slot-icon">⚡</div></div>
+          <div class="hotbar-slot" data-slot="4"><span class="slot-key">4</span><div class="slot-icon">🛡️</div></div>
+          <div class="hotbar-slot" data-slot="5"><span class="slot-key">5</span><div class="slot-icon">🧪</div></div>
+        </div>
+      </div>
+
+      <!-- MiniMap Window -->
+      <div id="minimap-container" class="glass-panel">
+        <canvas id="minimap-canvas" width="180" height="180"></canvas>
+        <div class="zone-name" id="zone-text">Aetheria Ruins - Floor 1</div>
+      </div>
+
+      <!-- Interactive Modals / Windows -->
+      <div id="modal-container" class="hidden">
+        <!-- Inventory Window -->
+        <div id="window-inventory" class="game-window glass-panel hidden">
+          <div class="window-header">
+            <h3>Hero Inventory & Equipment</h3>
+            <button class="close-btn">&times;</button>
+          </div>
+          <div class="window-body inventory-grid-layout">
+            <div class="equipment-paperdoll">
+              <div class="equip-slot" data-type="helmet" title="Head Gear">Helmet</div>
+              <div class="equip-slot" data-type="armor" title="Body Armor">Armor</div>
+              <div class="equip-slot" data-type="weapon" title="Primary Weapon">Weapon</div>
+              <div class="equip-slot" data-type="offhand" title="Off-Hand Shield/Orb">Offhand</div>
+              <div class="equip-slot" data-type="boots" title="Boots">Boots</div>
+              <div class="equip-slot" data-type="ring" title="Ring of Power">Ring</div>
+            </div>
+            <div class="inventory-slots" id="inventory-grid">
+              <!-- Grid generated via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Skill Tree Window -->
+        <div id="window-skills" class="game-window glass-panel hidden">
+          <div class="window-header">
+            <h3>Aetherial Skill Matrix</h3>
+            <button class="close-btn">&times;</button>
+          </div>
+          <div class="window-body">
+            <div id="skill-tree-canvas-container">
+              <canvas id="skill-tree-canvas" width="600" height="400"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quest Log Window -->
+        <div id="window-quests" class="game-window glass-panel hidden">
+          <div class="window-header">
+            <h3>Active Quests & Chronicle</h3>
+            <button class="close-btn">&times;</button>
+          </div>
+          <div class="window-body quest-layout">
+            <div class="quest-list" id="quest-list-items"></div>
+            <div class="quest-details" id="quest-details-panel">
+              <h4 id="quest-title">Select a quest</h4>
+              <p id="quest-desc"></p>
+              <div id="quest-objectives"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dialogue Box -->
+        <div id="dialogue-box" class="glass-panel hidden">
+          <div class="speaker-name" id="npc-name">NPC Name</div>
+          <div class="dialogue-content" id="npc-text">Dialogue text goes here...</div>
+          <div class="dialogue-options" id="npc-options"></div>
+        </div>
+
+        <!-- Level Editor Palette & Tools -->
+        <div id="window-editor" class="game-window glass-panel hidden">
+          <div class="window-header">
+            <h3>Aetheria Level Studio & Painter</h3>
+            <button class="close-btn">&times;</button>
+          </div>
+          <div class="window-body editor-tools">
+            <div class="editor-toolbar">
+              <button class="tool-btn active" data-tool="paint">🖌️ Paint Tile</button>
+              <button class="tool-btn" data-tool="erase">🧹 Erase</button>
+              <button class="tool-btn" data-tool="entity">👾 Place Entity</button>
+              <button class="tool-btn" data-tool="trigger">⚡ Trigger Zone</button>
+              <button class="tool-btn gold" id="btn-generate-dungeon">🎲 Gen Dungeon</button>
+              <button class="tool-btn green" id="btn-export-map">💾 Export Map</button>
+            </div>
+            <div class="tile-palette" id="tile-palette-container">
+              <!-- Tile choices -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/index.ts"></script>
+</body>
+</html>

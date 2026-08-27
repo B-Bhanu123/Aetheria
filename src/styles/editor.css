@@ -1,0 +1,109 @@
+/* Level Editor Styles */
+.editor-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tool-btn {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tool-btn:hover {
+  background: rgba(30, 41, 59, 1);
+  border-color: var(--primary-accent);
+}
+
+.tool-btn.active {
+  background: var(--primary-accent);
+  color: #000;
+  border-color: #fff;
+  font-weight: 700;
+}
+
+.tile-palette {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.palette-tile {
+  min-width: 44px;
+  height: 44px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+}
+
+.palette-tile:hover, .palette-tile.selected {
+  border-color: var(--border-gold);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px var(--border-glow);
+}
+
+/* Dialogue Box */
+#dialogue-box {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  max-width: 90vw;
+  padding: 20px;
+}
+
+.speaker-name {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: #ffe699;
+  margin-bottom: 8px;
+}
+
+.dialogue-content {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  margin-bottom: 16px;
+}
+
+.dialogue-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dialogue-option {
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.dialogue-option:hover {
+  background: rgba(0, 210, 255, 0.15);
+  border-color: var(--primary-accent);
+}

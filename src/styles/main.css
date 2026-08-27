@@ -1,0 +1,119 @@
+:root {
+  --bg-dark: #090a0f;
+  --bg-panel: rgba(18, 22, 34, 0.75);
+  --border-gold: #d4af37;
+  --border-glow: rgba(212, 175, 55, 0.4);
+  --primary-accent: #00d2ff;
+  --secondary-accent: #9d50bb;
+  --text-main: #f0f4f8;
+  --text-muted: #94a3b8;
+  --hp-red: #ff3b30;
+  --mp-blue: #007aff;
+  --xp-gold: #ffcc00;
+  --font-heading: 'Cinzel', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-code: 'Fira Code', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-body);
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#game-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#ui-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  pointer-events: auto;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* UI Buttons */
+.ui-btn {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+  color: var(--text-main);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui-btn:hover {
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.9), rgba(30, 41, 59, 1));
+  border-color: var(--primary-accent);
+  box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.ui-btn.gold {
+  border-color: var(--border-gold);
+  color: #ffe699;
+}
+
+.ui-btn.gold:hover {
+  box-shadow: 0 0 15px var(--border-glow);
+}
+
+.ui-btn.green {
+  border-color: #34c759;
+  color: #b3ffc6;
+}
+
+.ui-btn.icon-btn {
+  padding: 8px 10px;
+}

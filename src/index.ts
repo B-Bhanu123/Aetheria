@@ -19,7 +19,7 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Full Screen Centered Game Engine...');
+console.log('⚡ Initializing Aetheria Game Engine with Responsive Controls...');
 
 // Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -43,13 +43,13 @@ let playerMaxExp = 500;
 let playerLevel = 1;
 let questKills = 0;
 
-// Create Hero Entity at Center of Map (1200, 1200)
+// Hero Spawn Position (Centered at 1200, 1200)
 const spawnX = 1200;
 const spawnY = 1200;
 
 const player = world.createEntity('PlayerArchmage');
 world.addComponent(player.id, new TransformComponent(spawnX, spawnY));
-world.addComponent(player.id, new VelocityComponent(0, 0, 420, 0.82));
+world.addComponent(player.id, new VelocityComponent(0, 0, 450, 0.80));
 world.addComponent(player.id, new RenderComponent('player', 44, 44, '#38bdf8', 10));
 world.addComponent(player.id, new HealthComponent(500, 500));
 world.addComponent(player.id, new StatsComponent(15, 20, 12, 10));
@@ -57,12 +57,12 @@ world.addComponent(player.id, new StatsComponent(15, 20, 12, 10));
 let playerMana = 300;
 const maxMana = 300;
 
-// Force Camera to immediately center on Hero Spawn Position (Fixes black top-left screen issue!)
+// Center Camera directly on Hero Position
 const playerPos = () => world.getComponent(player.id, TransformComponent)!.position;
 renderer.camera.position.set(spawnX, spawnY);
 renderer.camera.target = playerPos();
 
-// Inventory
+// Inventory Setup
 const playerInventory = new Inventory(24);
 playerInventory.addItem(ItemDatabase.createItem('sword_aether')!);
 playerInventory.addItem(ItemDatabase.createItem('staff_arcane')!);
@@ -95,7 +95,7 @@ const auraEmitter = particleSystem.createEmitter(spawnX, spawnY);
 auraEmitter.emitRate = 18;
 auraEmitter.color = '#38bdf8';
 
-// Generate Large 60x60 Dungeon Map Grid (3840x3840 pixels)
+// Generate 60x60 Dungeon Grid
 const dungeonWidth = 60;
 const dungeonHeight = 60;
 const tileSize = 64;
@@ -103,10 +103,9 @@ let dungeonGrid: number[][] = [];
 
 const generateFullDungeon = (seed: number) => {
   const map = BSPDungeonGenerator.generate(dungeonWidth, dungeonHeight, seed);
-  // Ensure large open floor around player spawn (center 10..30 tiles)
   for (let rx = 10; rx <= 30; rx++) {
     for (let ry = 10; ry <= 30; ry++) {
-      map[rx][ry] = 1; // Floor
+      map[rx][ry] = 1; // Open floor
     }
   }
   return map;
@@ -114,7 +113,7 @@ const generateFullDungeon = (seed: number) => {
 
 dungeonGrid = generateFullDungeon(101);
 
-// Spawn Monsters immediately around player view
+// Monster Spawner
 const spawnMonster = (type: string, x: number, y: number) => {
   const mob = world.createEntity(`Monster_${type}_${Date.now()}`);
   world.addComponent(mob.id, new TransformComponent(x, y));
@@ -129,18 +128,17 @@ const spawnMonster = (type: string, x: number, y: number) => {
   lightingEngine.addLight(new PointLight(x, y, 180, isLich ? '#a855f7' : '#ef4444', 0.7));
 };
 
-// Spawn 15 monsters surrounding player in initial view!
+// Spawn initial monsters
 const offsets = [
   { x: -300, y: -200 }, { x: 300, y: -180 }, { x: -250, y: 250 }, { x: 280, y: 220 },
-  { x: -400, y: 0 }, { x: 400, y: 0 }, { x: 0, y: -350 }, { x: 0, y: 350 },
-  { x: -180, y: -300 }, { x: 200, y: -280 }, { x: -350, y: 300 }, { x: 350, y: -320 }
+  { x: -400, y: 0 }, { x: 400, y: 0 }, { x: 0, y: -350 }, { x: 0, y: 350 }
 ];
 
 offsets.forEach((off, i) => {
   spawnMonster(i % 3 === 0 ? 'lich' : i % 2 === 0 ? 'goblin' : 'skeleton', spawnX + off.x, spawnY + off.y);
 });
 
-// Keyboard Input Handler (Prevent Page Scrolling!)
+// Keyboard Controls (Prevent Page Scroll!)
 const keys: Record<string, boolean> = {};
 
 window.addEventListener('keydown', (e) => {
@@ -171,29 +169,45 @@ document.getElementById('slot-3')?.addEventListener('click', castLightning);
 document.getElementById('slot-4')?.addEventListener('click', castAetherShield);
 document.getElementById('slot-5')?.addEventListener('click', usePotion);
 
-// On-Screen Virtual D-Pad Controller Handling (Mouse & Touch)
-const dpadPress: Record<string, boolean> = { up: false, down: false, left: false, right: false };
+// Robust On-Screen D-Pad Controller Handling (Supports Click, MouseHold, and Touch)
+const dpadState: Record<string, boolean> = { up: false, down: false, left: false, right: false };
+
+const triggerStepMove = (dir: string) => {
+  const vel = world.getComponent(player.id, VelocityComponent);
+  if (!vel) return;
+
+  const stepImpulse = 280;
+  if (dir === 'up') vel.velocity.y = -stepImpulse;
+  if (dir === 'down') vel.velocity.y = stepImpulse;
+  if (dir === 'left') vel.velocity.x = -stepImpulse;
+  if (dir === 'right') vel.velocity.x = stepImpulse;
+};
 
 const setupDpadBtn = (id: string, dir: string) => {
   const btn = document.getElementById(id);
   if (!btn) return;
 
-  const startMove = (e: Event) => {
+  const handleStart = (e: Event) => {
     e.preventDefault();
-    dpadPress[dir] = true;
+    dpadState[dir] = true;
+    triggerStepMove(dir);
     AudioManager.getInstance().init();
   };
 
-  const stopMove = (e: Event) => {
+  const handleEnd = (e: Event) => {
     e.preventDefault();
-    dpadPress[dir] = false;
+    dpadState[dir] = false;
   };
 
-  btn.addEventListener('mousedown', startMove);
-  btn.addEventListener('mouseup', stopMove);
-  btn.addEventListener('mouseleave', stopMove);
-  btn.addEventListener('touchstart', startMove);
-  btn.addEventListener('touchend', stopMove);
+  btn.addEventListener('mousedown', handleStart);
+  btn.addEventListener('mouseup', handleEnd);
+  btn.addEventListener('mouseleave', handleEnd);
+  btn.addEventListener('touchstart', handleStart, { passive: false });
+  btn.addEventListener('touchend', handleEnd, { passive: false });
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    triggerStepMove(dir);
+  });
 };
 
 setupDpadBtn('btn-move-up', 'up');
@@ -413,13 +427,13 @@ function update(dt: number): void {
   const vel = world.getComponent(player.id, VelocityComponent);
   const pPos = playerPos();
 
-  // Movement Controls
+  // Combine Keyboard Keys & On-Screen D-Pad State
   if (vel) {
     const move = new Vector2();
-    if (keys['w'] || keys['W'] || keys['ArrowUp'] || dpadPress.up) move.y -= 1;
-    if (keys['s'] || keys['S'] || keys['ArrowDown'] || dpadPress.down) move.y += 1;
-    if (keys['a'] || keys['A'] || keys['ArrowLeft'] || dpadPress.left) move.x -= 1;
-    if (keys['d'] || keys['D'] || keys['ArrowRight'] || dpadPress.right) move.x += 1;
+    if (keys['w'] || keys['W'] || keys['ArrowUp'] || dpadState.up) move.y -= 1;
+    if (keys['s'] || keys['S'] || keys['ArrowDown'] || dpadState.down) move.y += 1;
+    if (keys['a'] || keys['A'] || keys['ArrowLeft'] || dpadState.left) move.x -= 1;
+    if (keys['d'] || keys['D'] || keys['ArrowRight'] || dpadState.right) move.x += 1;
 
     if (move.lengthSq() > 0) {
       move.normalize().multiplyScalar(460);
@@ -448,7 +462,7 @@ function update(dt: number): void {
     }
   }
 
-  // Mana & HP Passive Regeneration Out-of-Combat
+  // Mana & HP Passive Regeneration
   if (playerMana < maxMana) {
     playerMana = Math.min(maxMana, playerMana + 18 * dt);
   }

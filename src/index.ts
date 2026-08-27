@@ -19,7 +19,7 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Rock-Solid Multi-Input Game Engine...');
+console.log('⚡ Initializing Aetheria Instant Responsive Button Engine...');
 
 // Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -143,7 +143,7 @@ offsets.forEach((off, i) => {
   spawnMonster(i % 3 === 0 ? 'lich' : i % 2 === 0 ? 'goblin' : 'skeleton', spawnX + off.x, spawnY + off.y);
 });
 
-// Keyboard Controls (Uses e.code for 100% reliability regardless of CapsLock/Layout)
+// Keyboard Controls (Uses e.code for 100% physical key reliability)
 const keyCodes: Record<string, boolean> = {};
 
 window.addEventListener('keydown', (e) => {
@@ -172,14 +172,14 @@ window.addEventListener('keyup', (e) => {
 const bindActionSlot = (id: string, action: () => void) => {
   const el = document.getElementById(id);
   if (!el) return;
-  el.addEventListener('pointerdown', (e) => {
+  const trigger = (e: Event) => {
     e.preventDefault();
+    e.stopPropagation();
+    AudioManager.getInstance().init();
     action();
-  });
-  el.addEventListener('click', (e) => {
-    e.preventDefault();
-    action();
-  });
+  };
+  el.addEventListener('pointerdown', trigger);
+  el.addEventListener('click', trigger);
 };
 
 bindActionSlot('slot-attack', castMeleeAttack);
@@ -189,20 +189,39 @@ bindActionSlot('slot-3', castLightning);
 bindActionSlot('slot-4', castAetherShield);
 bindActionSlot('slot-5', usePotion);
 
-// On-Screen Movement D-Pad Controller Handling (Supports Mouse, Pointer, and Touch Events)
+// Helper function to step Hero instantly by 80px on D-Pad button click
+const stepHeroInDirection = (dir: string) => {
+  const transform = world.getComponent(player.id, TransformComponent);
+  if (!transform) return;
+
+  const stepDistance = 80;
+  targetDestination = null;
+
+  if (dir === 'up') transform.position.y -= stepDistance;
+  if (dir === 'down') transform.position.y += stepDistance;
+  if (dir === 'left') transform.position.x -= stepDistance;
+  if (dir === 'right') transform.position.x += stepDistance;
+
+  renderer.addFloatingText(`Step ${dir.toUpperCase()}`, transform.position.x, transform.position.y - 30, '#38bdf8', 1.0);
+  SoundSynth.playItemPickup();
+};
+
+// On-Screen Movement D-Pad Controller Handling (Supports Instant Step Click & Hold)
 const setupDpadBtn = (id: string, dir: string) => {
   const btn = document.getElementById(id);
   if (!btn) return;
 
   const startHold = (e: Event) => {
     e.preventDefault();
+    e.stopPropagation();
     dpadHold[dir] = true;
-    targetDestination = null;
+    stepHeroInDirection(dir);
     AudioManager.getInstance().init();
   };
 
   const stopHold = (e: Event) => {
     e.preventDefault();
+    e.stopPropagation();
     dpadHold[dir] = false;
   };
 
@@ -210,11 +229,10 @@ const setupDpadBtn = (id: string, dir: string) => {
   btn.addEventListener('pointerup', stopHold);
   btn.addEventListener('pointerleave', stopHold);
   btn.addEventListener('pointercancel', stopHold);
-  btn.addEventListener('mousedown', startHold);
-  btn.addEventListener('mouseup', stopHold);
-  btn.addEventListener('mouseleave', stopHold);
-  btn.addEventListener('touchstart', startHold, { passive: false });
-  btn.addEventListener('touchend', stopHold, { passive: false });
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    stepHeroInDirection(dir);
+  });
 };
 
 setupDpadBtn('btn-move-up', 'up');
@@ -315,6 +333,8 @@ function castMeleeAttack(): void {
   renderer.camera.shake(0.15, 6);
 
   const pPos = playerPos();
+  renderer.addFloatingText('⚔️ SWORD ATTACK', pPos.x, pPos.y - 35, '#fde047', 1.3);
+
   const entities = world.query(new Query({ all: [TransformComponent, HealthComponent] }));
 
   for (let i = 0; i < entities.length; i++) {
@@ -341,6 +361,8 @@ function castFireball(): void {
   renderer.camera.shake(0.25, 12);
 
   const pPos = playerPos();
+  renderer.addFloatingText('🔥 FIREBALL', pPos.x, pPos.y - 35, '#f97316', 1.4);
+
   const entities = world.query(new Query({ all: [TransformComponent, HealthComponent] }));
 
   for (let i = 0; i < entities.length; i++) {
@@ -365,6 +387,7 @@ function castFrostNova(): void {
 
   SoundSynth.playSpellCast();
   const pPos = playerPos();
+  renderer.addFloatingText('❄️ FROST NOVA', pPos.x, pPos.y - 35, '#38bdf8', 1.3);
 
   const entities = world.query(new Query({ all: [TransformComponent, HealthComponent] }));
   for (let i = 0; i < entities.length; i++) {
@@ -388,6 +411,7 @@ function castLightning(): void {
 
   SoundSynth.playSpellCast();
   const pPos = playerPos();
+  renderer.addFloatingText('⚡ LIGHTNING', pPos.x, pPos.y - 35, '#eab308', 1.5);
 
   const entities = world.query(new Query({ all: [TransformComponent, HealthComponent] }));
   for (let i = 0; i < entities.length; i++) {
@@ -454,18 +478,18 @@ function killMonster(id: number, pos: Vector2): void {
 
 // Initial Float Banner
 setTimeout(() => {
-  renderer.addFloatingText('✨ Use WASD, D-Pad Buttons, or Click Map to move Hero!', spawnX, spawnY - 60, '#fde047', 1.4);
+  renderer.addFloatingText('✨ Click ▲ ◄ ▼ ► Buttons or WASD to move Hero!', spawnX, spawnY - 60, '#fde047', 1.4);
 }, 300);
 
 // Main Game Loop Update (Direct Movement Calculation)
 function update(dt: number): void {
   const transform = world.getComponent(player.id, TransformComponent)!;
   const pPos = transform.position;
-  const moveSpeed = 420; // pixels per second
+  const moveSpeed = 460; // pixels per second
 
   const moveDir = new Vector2(0, 0);
 
-  // Check Keyboard Input (Code-based)
+  // Check Keyboard Input (Code-based) or D-Pad Hold
   if (keyCodes['KeyW'] || keyCodes['ArrowUp'] || dpadHold.up) moveDir.y -= 1;
   if (keyCodes['KeyS'] || keyCodes['ArrowDown'] || dpadHold.down) moveDir.y += 1;
   if (keyCodes['KeyA'] || keyCodes['ArrowLeft'] || dpadHold.left) moveDir.x -= 1;
@@ -555,4 +579,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Multi-Input Engine Active!');
+console.log('✅ Aetheria Instant Responsive Button Engine Active!');

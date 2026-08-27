@@ -19,7 +19,7 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Interactive Modal & Equipment Engine...');
+console.log('⚡ Initializing Aetheria Guaranteed Icon Movement Engine...');
 
 // Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -67,7 +67,7 @@ const playerPos = () => world.getComponent(player.id, TransformComponent)!.posit
 renderer.camera.position.set(spawnX, spawnY);
 renderer.camera.target = playerPos();
 
-// Inventory & Equipment Setup
+// Inventory Setup
 const playerInventory = new Inventory(24);
 playerInventory.addItem(ItemDatabase.createItem('sword_aether')!);
 playerInventory.addItem(ItemDatabase.createItem('staff_arcane')!);
@@ -201,33 +201,33 @@ bindActionSlot('slot-3', castLightning);
 bindActionSlot('slot-4', castAetherShield);
 bindActionSlot('slot-5', usePotion);
 
-// Helper function to step Hero instantly by 80px on D-Pad button click
+// Helper function to step Hero instantly by 90px on D-Pad button click
 const stepHeroInDirection = (dir: string) => {
   const transform = world.getComponent(player.id, TransformComponent);
   const velocity = world.getComponent(player.id, VelocityComponent);
   if (!transform || !velocity) return;
 
-  const stepDistance = 80;
+  const stepDistance = 90;
   targetDestination = null;
 
   if (dir === 'up') {
     transform.position.y -= stepDistance;
-    velocity.velocity.set(0, -200);
+    velocity.velocity.set(0, -260);
   }
   if (dir === 'down') {
     transform.position.y += stepDistance;
-    velocity.velocity.set(0, 200);
+    velocity.velocity.set(0, 260);
   }
   if (dir === 'left') {
     transform.position.x -= stepDistance;
-    velocity.velocity.set(-200, 0);
+    velocity.velocity.set(-260, 0);
   }
   if (dir === 'right') {
     transform.position.x += stepDistance;
-    velocity.velocity.set(200, 0);
+    velocity.velocity.set(260, 0);
   }
 
-  renderer.addFloatingText(`Step ${dir.toUpperCase()}`, transform.position.x, transform.position.y - 30, '#38bdf8', 1.0);
+  renderer.addFloatingText(`Step ${dir.toUpperCase()} 🧙‍♂️`, transform.position.x, transform.position.y - 30, '#38bdf8', 1.2);
   SoundSynth.playItemPickup();
 };
 
@@ -267,6 +267,9 @@ setupDpadBtn('btn-move-right', 'right');
 
 // Canvas Pointer/Mouse Destination & Follow Handling
 const setTargetFromScreen = (clientX: number, clientY: number) => {
+  // Ensure window is focused so keyboard keys work instantly
+  window.focus();
+
   // Check if any modal window is currently open
   const modalContainer = document.getElementById('modal-container');
   if (modalContainer && !modalContainer.classList.contains('hidden')) {
@@ -278,6 +281,7 @@ const setTargetFromScreen = (clientX: number, clientY: number) => {
   const worldPos = renderer.camera.screenToWorld(clickScreen);
 
   targetDestination = worldPos.clone();
+  renderer.addFloatingText('📍 Walk Here', worldPos.x, worldPos.y, '#38bdf8', 1.0);
 };
 
 canvas.addEventListener('pointerdown', (e) => {
@@ -489,15 +493,15 @@ function killMonster(id: number, pos: Vector2): void {
 
 // Initial Float Banner
 setTimeout(() => {
-  renderer.addFloatingText('✨ Click Inventory (I), Skills (K), or Quests (Q) to open!', spawnX, spawnY - 60, '#fde047', 1.4);
+  renderer.addFloatingText('✨ Click ▲ ◄ ▼ ► Buttons or WASD to move Hero!', spawnX, spawnY - 60, '#fde047', 1.4);
 }, 300);
 
-// Main Game Loop Update
+// Main Game Loop Update (Direct Movement Calculation + Active Pursuit AI)
 function update(dt: number): void {
   const transform = world.getComponent(player.id, TransformComponent)!;
   const velocity = world.getComponent(player.id, VelocityComponent)!;
   const pPos = transform.position;
-  const moveSpeed = 460;
+  const moveSpeed = 480;
 
   const moveDir = new Vector2(0, 0);
 
@@ -525,7 +529,7 @@ function update(dt: number): void {
     velocity.velocity.set(0, 0);
   }
 
-  // Enemy AI Movement & Attack
+  // Active Enemy AI Pursuit & Patrol Movement
   const mobs = world.query(new Query({ all: [TransformComponent, HealthComponent] }));
 
   for (let i = 0; i < mobs.length; i++) {
@@ -536,17 +540,22 @@ function update(dt: number): void {
     const mVel = world.getComponent(mob.id, VelocityComponent);
     const dist = mTrans.position.distanceTo(pPos);
 
-    if (dist < 450 && dist > 45) {
+    if (dist < 480 && dist > 45) {
       const dir = new Vector2().subVectors(pPos, mTrans.position).normalize();
-      if (mVel) mVel.velocity.copy(dir).multiplyScalar(140);
-      mTrans.position.add(dir.multiplyScalar(140 * dt));
-    } else {
+      if (mVel) mVel.velocity.copy(dir).multiplyScalar(150);
+      mTrans.position.add(dir.multiplyScalar(150 * dt));
+    } else if (dist <= 45) {
       if (mVel) mVel.velocity.set(0, 0);
-      if (dist <= 45) {
-        const playerHp = world.getComponent(player.id, HealthComponent)!;
-        playerHp.takeDamage(5 * dt * 8);
-        renderer.camera.shake(0.05, 3);
-      }
+      const playerHp = world.getComponent(player.id, HealthComponent)!;
+      playerHp.takeDamage(5 * dt * 8);
+      renderer.camera.shake(0.05, 3);
+    } else {
+      // Idle Wander Patrol
+      const wanderX = Math.sin(mob.id + Date.now() * 0.001) * 30 * dt;
+      const wanderY = Math.cos(mob.id + Date.now() * 0.001) * 30 * dt;
+      mTrans.position.x += wanderX;
+      mTrans.position.y += wanderY;
+      if (mVel) mVel.velocity.set(wanderX, wanderY);
     }
   }
 
@@ -600,4 +609,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Modal & Equipment Engine Running!');
+console.log('✅ Aetheria Guaranteed Icon Movement Engine Running!');

@@ -19,7 +19,7 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Game Engine with Responsive Controls...');
+console.log('⚡ Initializing Aetheria Direct Click-to-Move Game Engine...');
 
 // Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -43,13 +43,16 @@ let playerMaxExp = 500;
 let playerLevel = 1;
 let questKills = 0;
 
+// Hero Target Destination for Direct Click-to-Move
+let targetDestination: Vector2 | null = null;
+
 // Hero Spawn Position (Centered at 1200, 1200)
 const spawnX = 1200;
 const spawnY = 1200;
 
 const player = world.createEntity('PlayerArchmage');
 world.addComponent(player.id, new TransformComponent(spawnX, spawnY));
-world.addComponent(player.id, new VelocityComponent(0, 0, 450, 0.80));
+world.addComponent(player.id, new VelocityComponent(0, 0, 480, 0.80));
 world.addComponent(player.id, new RenderComponent('player', 44, 44, '#38bdf8', 10));
 world.addComponent(player.id, new HealthComponent(500, 500));
 world.addComponent(player.id, new StatsComponent(15, 20, 12, 10));
@@ -128,7 +131,7 @@ const spawnMonster = (type: string, x: number, y: number) => {
   lightingEngine.addLight(new PointLight(x, y, 180, isLich ? '#a855f7' : '#ef4444', 0.7));
 };
 
-// Spawn initial monsters
+// Spawn initial monsters surrounding player
 const offsets = [
   { x: -300, y: -200 }, { x: 300, y: -180 }, { x: -250, y: 250 }, { x: 280, y: 220 },
   { x: -400, y: 0 }, { x: 400, y: 0 }, { x: 0, y: -350 }, { x: 0, y: 350 }
@@ -148,6 +151,9 @@ window.addEventListener('keydown', (e) => {
 
   keys[e.key] = true;
   AudioManager.getInstance().init();
+
+  // Clear mouse target destination when keyboard keys are pressed
+  targetDestination = null;
 
   if (e.code === 'Space') castMeleeAttack();
   if (e.key === '1') castFireball();
@@ -169,78 +175,43 @@ document.getElementById('slot-3')?.addEventListener('click', castLightning);
 document.getElementById('slot-4')?.addEventListener('click', castAetherShield);
 document.getElementById('slot-5')?.addEventListener('click', usePotion);
 
-// Robust On-Screen D-Pad Controller Handling (Supports Click, MouseHold, and Touch)
-const dpadState: Record<string, boolean> = { up: false, down: false, left: false, right: false };
-
-const triggerStepMove = (dir: string) => {
-  const vel = world.getComponent(player.id, VelocityComponent);
-  if (!vel) return;
-
-  const stepImpulse = 280;
-  if (dir === 'up') vel.velocity.y = -stepImpulse;
-  if (dir === 'down') vel.velocity.y = stepImpulse;
-  if (dir === 'left') vel.velocity.x = -stepImpulse;
-  if (dir === 'right') vel.velocity.x = stepImpulse;
-};
-
-const setupDpadBtn = (id: string, dir: string) => {
-  const btn = document.getElementById(id);
-  if (!btn) return;
-
-  const handleStart = (e: Event) => {
-    e.preventDefault();
-    dpadState[dir] = true;
-    triggerStepMove(dir);
-    AudioManager.getInstance().init();
-  };
-
-  const handleEnd = (e: Event) => {
-    e.preventDefault();
-    dpadState[dir] = false;
-  };
-
-  btn.addEventListener('mousedown', handleStart);
-  btn.addEventListener('mouseup', handleEnd);
-  btn.addEventListener('mouseleave', handleEnd);
-  btn.addEventListener('touchstart', handleStart, { passive: false });
-  btn.addEventListener('touchend', handleEnd, { passive: false });
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    triggerStepMove(dir);
-  });
-};
-
-setupDpadBtn('btn-move-up', 'up');
-setupDpadBtn('btn-move-down', 'down');
-setupDpadBtn('btn-move-left', 'left');
-setupDpadBtn('btn-move-right', 'right');
-
-// Interactive Level Editor Canvas Clicking
+// Canvas Direct Click-to-Move Handler
 canvas.addEventListener('click', (e) => {
+  AudioManager.getInstance().init();
   const rect = canvas.getBoundingClientRect();
   const clickScreen = new Vector2(e.clientX - rect.left, e.clientY - rect.top);
   const worldPos = renderer.camera.screenToWorld(clickScreen);
 
-  const gx = Math.floor(worldPos.x / tileSize);
-  const gy = Math.floor(worldPos.y / tileSize);
+  // Check if Level Editor Studio is active
+  const editorWindow = document.getElementById('window-editor');
+  const isEditorActive = editorWindow && !editorWindow.classList.contains('hidden');
 
-  const tool = uiManager.activeEditorTool;
-  if (tool === 'paint') {
-    if (gx >= 0 && gx < dungeonWidth && gy >= 0 && gy < dungeonHeight) {
-      dungeonGrid[gx][gy] = 0;
-      renderer.addFloatingText('Wall Painted', worldPos.x, worldPos.y, '#fde047');
+  if (isEditorActive) {
+    const gx = Math.floor(worldPos.x / tileSize);
+    const gy = Math.floor(worldPos.y / tileSize);
+    const tool = uiManager.activeEditorTool;
+
+    if (tool === 'paint') {
+      if (gx >= 0 && gx < dungeonWidth && gy >= 0 && gy < dungeonHeight) {
+        dungeonGrid[gx][gy] = 0;
+        renderer.addFloatingText('Wall Painted', worldPos.x, worldPos.y, '#fde047');
+      }
+    } else if (tool === 'floor') {
+      if (gx >= 0 && gx < dungeonWidth && gy >= 0 && gy < dungeonHeight) {
+        dungeonGrid[gx][gy] = 1;
+        renderer.addFloatingText('Floor Painted', worldPos.x, worldPos.y, '#38bdf8');
+      }
+    } else if (tool === 'spawn-mob') {
+      spawnMonster('skeleton', worldPos.x, worldPos.y);
+      renderer.addFloatingText('Skeleton Spawned!', worldPos.x, worldPos.y, '#ef4444');
+    } else if (tool === 'spawn-boss') {
+      spawnMonster('lich', worldPos.x, worldPos.y);
+      renderer.addFloatingText('Lich Boss Spawned!', worldPos.x, worldPos.y, '#a855f7');
     }
-  } else if (tool === 'floor') {
-    if (gx >= 0 && gx < dungeonWidth && gy >= 0 && gy < dungeonHeight) {
-      dungeonGrid[gx][gy] = 1;
-      renderer.addFloatingText('Floor Painted', worldPos.x, worldPos.y, '#38bdf8');
-    }
-  } else if (tool === 'spawn-mob') {
-    spawnMonster('skeleton', worldPos.x, worldPos.y);
-    renderer.addFloatingText('Skeleton Spawned!', worldPos.x, worldPos.y, '#ef4444');
-  } else if (tool === 'spawn-boss') {
-    spawnMonster('lich', worldPos.x, worldPos.y);
-    renderer.addFloatingText('Lich Boss Spawned!', worldPos.x, worldPos.y, '#a855f7');
+  } else {
+    // Normal Gameplay: Direct Click-to-Move!
+    targetDestination = worldPos.clone();
+    renderer.addFloatingText('📍 Move Here', worldPos.x, worldPos.y, '#38bdf8', 0.9);
   }
 });
 
@@ -417,9 +388,9 @@ function killMonster(id: number, pos: Vector2): void {
   }
 }
 
-// Welcome Banner immediately centered
+// Initial Float Banner
 setTimeout(() => {
-  renderer.addFloatingText('✨ Game Ready! Press WASD / Arrow Keys or Click D-Pad to move!', spawnX, spawnY - 60, '#fde047', 1.4);
+  renderer.addFloatingText('✨ Click anywhere on map OR use WASD to move Hero!', spawnX, spawnY - 60, '#fde047', 1.4);
 }, 300);
 
 // Main Game Loop Update
@@ -427,17 +398,26 @@ function update(dt: number): void {
   const vel = world.getComponent(player.id, VelocityComponent);
   const pPos = playerPos();
 
-  // Combine Keyboard Keys & On-Screen D-Pad State
+  // Combine Keyboard WASD Movement & Direct Click-to-Move
   if (vel) {
     const move = new Vector2();
-    if (keys['w'] || keys['W'] || keys['ArrowUp'] || dpadState.up) move.y -= 1;
-    if (keys['s'] || keys['S'] || keys['ArrowDown'] || dpadState.down) move.y += 1;
-    if (keys['a'] || keys['A'] || keys['ArrowLeft'] || dpadState.left) move.x -= 1;
-    if (keys['d'] || keys['D'] || keys['ArrowRight'] || dpadState.right) move.x += 1;
+    if (keys['w'] || keys['W'] || keys['ArrowUp']) move.y -= 1;
+    if (keys['s'] || keys['S'] || keys['ArrowDown']) move.y += 1;
+    if (keys['a'] || keys['A'] || keys['ArrowLeft']) move.x -= 1;
+    if (keys['d'] || keys['D'] || keys['ArrowRight']) move.x += 1;
 
     if (move.lengthSq() > 0) {
-      move.normalize().multiplyScalar(460);
+      targetDestination = null; // Override mouse click destination with keyboard input
+      move.normalize().multiplyScalar(480);
       vel.velocity.add(move);
+    } else if (targetDestination) {
+      const dist = pPos.distanceTo(targetDestination);
+      if (dist > 18) {
+        const dir = new Vector2().subVectors(targetDestination, pPos).normalize().multiplyScalar(460);
+        vel.velocity.add(dir);
+      } else {
+        targetDestination = null; // Reached target location
+      }
     }
   }
 
@@ -490,6 +470,22 @@ function render(dt: number): void {
   renderer.clear('#07090e');
   renderer.renderDungeonTiles(dungeonGrid, tileSize);
   renderer.render(world, dt);
+
+  // Render Target Destination Ring if active
+  if (targetDestination) {
+    const ctx = canvas.getContext('2d')!;
+    const screenPos = new Vector2();
+    renderer.camera.worldToScreen(targetDestination, screenPos);
+
+    ctx.save();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(screenPos.x, screenPos.y, 14, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   particleSystem.render(canvas.getContext('2d')!, renderer.camera);
   lightingEngine.render(canvas.getContext('2d')!, renderer.camera);
   renderer.renderMiniMap(document.getElementById('minimap-canvas') as HTMLCanvasElement, world, dungeonGrid);
@@ -499,4 +495,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Centered Live Game Engine Running Successfully!');
+console.log('✅ Aetheria Direct Click-to-Move Game Engine Active!');

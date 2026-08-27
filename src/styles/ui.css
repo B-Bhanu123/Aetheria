@@ -114,61 +114,6 @@
   gap: 8px;
 }
 
-/* On-Screen Virtual D-Pad Controller */
-#virtual-dpad {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  pointer-events: auto;
-}
-
-.dpad-title {
-  font-family: var(--font-heading);
-  font-size: 0.75rem;
-  color: #fef08a;
-}
-
-.dpad-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 44px);
-  grid-template-rows: repeat(3, 44px);
-  gap: 4px;
-}
-
-.dpad-btn {
-  background: rgba(30, 41, 59, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 8px;
-  color: #38bdf8;
-  font-size: 1.2rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.dpad-btn:hover, .dpad-btn:active {
-  background: #38bdf8;
-  color: #000;
-  border-color: #fff;
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.8);
-  transform: scale(1.08);
-}
-
-.dpad-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.2rem;
-}
-
 /* Action Hotbar */
 #hud-footer {
   margin-bottom: 20px;

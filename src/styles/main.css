@@ -1,15 +1,15 @@
 :root {
-  --bg-dark: #090a0f;
-  --bg-panel: rgba(18, 22, 34, 0.75);
-  --border-gold: #d4af37;
-  --border-glow: rgba(212, 175, 55, 0.4);
-  --primary-accent: #00d2ff;
-  --secondary-accent: #9d50bb;
-  --text-main: #f0f4f8;
+  --bg-dark: #07090e;
+  --bg-panel: rgba(13, 17, 26, 0.85);
+  --border-gold: #f59e0b;
+  --border-glow: rgba(245, 158, 11, 0.5);
+  --primary-accent: #38bdf8;
+  --secondary-accent: #a855f7;
+  --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --hp-red: #ff3b30;
-  --mp-blue: #007aff;
-  --xp-gold: #ffcc00;
+  --hp-red: #ef4444;
+  --mp-blue: #3b82f6;
+  --xp-gold: #eab308;
   --font-heading: 'Cinzel', serif;
   --font-body: 'Inter', sans-serif;
   --font-code: 'Fira Code', monospace;
@@ -64,11 +64,11 @@ html, body {
 
 .glass-panel {
   background: var(--bg-panel);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   pointer-events: auto;
 }
 
@@ -78,42 +78,56 @@ html, body {
 
 /* UI Buttons */
 .ui-btn {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
   color: var(--text-main);
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
 .ui-btn:hover {
-  background: linear-gradient(135deg, rgba(51, 65, 85, 0.9), rgba(30, 41, 59, 1));
+  background: linear-gradient(135deg, rgba(51, 65, 85, 1), rgba(30, 41, 59, 1));
   border-color: var(--primary-accent);
-  box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
-  transform: translateY(-1px);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+  transform: translateY(-2px);
 }
 
 .ui-btn.gold {
   border-color: var(--border-gold);
-  color: #ffe699;
+  color: #fef08a;
 }
 
 .ui-btn.gold:hover {
-  box-shadow: 0 0 15px var(--border-glow);
+  box-shadow: 0 0 18px var(--border-glow);
 }
 
 .ui-btn.green {
-  border-color: #34c759;
-  color: #b3ffc6;
+  border-color: #22c55e;
+  color: #bbf7d0;
 }
 
-.ui-btn.icon-btn {
-  padding: 8px 10px;
+.ui-btn.green:hover {
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+}
+
+/* Key Badge */
+.kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fef08a;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid var(--border-gold);
+  border-radius: 4px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
 }

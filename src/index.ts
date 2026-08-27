@@ -19,7 +19,7 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Instant Responsive Button Engine...');
+console.log('⚡ Initializing Aetheria Animated Icon Game Engine...');
 
 // Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -192,15 +192,28 @@ bindActionSlot('slot-5', usePotion);
 // Helper function to step Hero instantly by 80px on D-Pad button click
 const stepHeroInDirection = (dir: string) => {
   const transform = world.getComponent(player.id, TransformComponent);
-  if (!transform) return;
+  const velocity = world.getComponent(player.id, VelocityComponent);
+  if (!transform || !velocity) return;
 
   const stepDistance = 80;
   targetDestination = null;
 
-  if (dir === 'up') transform.position.y -= stepDistance;
-  if (dir === 'down') transform.position.y += stepDistance;
-  if (dir === 'left') transform.position.x -= stepDistance;
-  if (dir === 'right') transform.position.x += stepDistance;
+  if (dir === 'up') {
+    transform.position.y -= stepDistance;
+    velocity.velocity.set(0, -200);
+  }
+  if (dir === 'down') {
+    transform.position.y += stepDistance;
+    velocity.velocity.set(0, 200);
+  }
+  if (dir === 'left') {
+    transform.position.x -= stepDistance;
+    velocity.velocity.set(-200, 0);
+  }
+  if (dir === 'right') {
+    transform.position.x += stepDistance;
+    velocity.velocity.set(200, 0);
+  }
 
   renderer.addFloatingText(`Step ${dir.toUpperCase()}`, transform.position.x, transform.position.y - 30, '#38bdf8', 1.0);
   SoundSynth.playItemPickup();
@@ -246,7 +259,6 @@ const setTargetFromScreen = (clientX: number, clientY: number) => {
   const clickScreen = new Vector2(clientX - rect.left, clientY - rect.top);
   const worldPos = renderer.camera.screenToWorld(clickScreen);
 
-  // Check if Level Editor Studio is active
   const editorWindow = document.getElementById('window-editor');
   const isEditorActive = editorWindow && !editorWindow.classList.contains('hidden');
 
@@ -273,7 +285,6 @@ const setTargetFromScreen = (clientX: number, clientY: number) => {
       renderer.addFloatingText('Lich Boss Spawned!', worldPos.x, worldPos.y, '#a855f7');
     }
   } else {
-    // Normal Gameplay: Direct Click or Drag-to-Move!
     targetDestination = worldPos.clone();
   }
 };
@@ -327,13 +338,14 @@ document.getElementById('btn-gen-new-dungeon')?.addEventListener('click', () => 
   renderer.addFloatingText('Dungeon Regenerated!', playerPos().x, playerPos().y - 30, '#38bdf8');
 });
 
-// Spells & Combat Functions
+// Spells & Combat Functions with Animated FX
 function castMeleeAttack(): void {
   SoundSynth.playSwordSwing();
   renderer.camera.shake(0.15, 6);
 
   const pPos = playerPos();
   renderer.addFloatingText('⚔️ SWORD ATTACK', pPos.x, pPos.y - 35, '#fde047', 1.3);
+  renderer.addSpellEffect({ type: 'slash', startX: pPos.x, startY: pPos.y, targetX: pPos.x, targetY: pPos.y, life: 0.35, maxLife: 0.35 });
 
   const entities = world.query(new Query({ all: [TransformComponent, HealthComponent] }));
 
@@ -362,6 +374,7 @@ function castFireball(): void {
 
   const pPos = playerPos();
   renderer.addFloatingText('🔥 FIREBALL', pPos.x, pPos.y - 35, '#f97316', 1.4);
+  renderer.addSpellEffect({ type: 'fireball', startX: pPos.x, startY: pPos.y, targetX: pPos.x + 300, targetY: pPos.y, life: 0.5, maxLife: 0.5 });
 
   const entities = world.query(new Query({ all: [TransformComponent, HealthComponent] }));
 
@@ -388,6 +401,7 @@ function castFrostNova(): void {
   SoundSynth.playSpellCast();
   const pPos = playerPos();
   renderer.addFloatingText('❄️ FROST NOVA', pPos.x, pPos.y - 35, '#38bdf8', 1.3);
+  renderer.addSpellEffect({ type: 'frost', startX: pPos.x, startY: pPos.y, targetX: pPos.x, targetY: pPos.y, life: 0.45, maxLife: 0.45, radius: 220 });
 
   const entities = world.query(new Query({ all: [TransformComponent, HealthComponent] }));
   for (let i = 0; i < entities.length; i++) {
@@ -420,6 +434,7 @@ function castLightning(): void {
 
     const mPos = world.getComponent(mob.id, TransformComponent)!.position;
     if (pPos.distanceTo(mPos) < 280) {
+      renderer.addSpellEffect({ type: 'lightning', startX: pPos.x, startY: pPos.y, targetX: mPos.x, targetY: mPos.y, life: 0.4, maxLife: 0.4 });
       const hp = world.getComponent(mob.id, HealthComponent)!;
       hp.takeDamage(100);
       renderer.addFloatingText(`⚡ -100`, mPos.x, mPos.y - 20, '#eab308', 1.5);
@@ -457,7 +472,6 @@ function killMonster(id: number, pos: Vector2): void {
 
   renderer.addFloatingText('+80 XP +40 Gold', pos.x, pos.y, '#fde047', 1.2);
 
-  // Respawn a new monster surrounding player
   setTimeout(() => {
     const p = playerPos();
     const rx = p.x + (Math.random() - 0.5) * 600;
@@ -481,15 +495,15 @@ setTimeout(() => {
   renderer.addFloatingText('✨ Click ▲ ◄ ▼ ► Buttons or WASD to move Hero!', spawnX, spawnY - 60, '#fde047', 1.4);
 }, 300);
 
-// Main Game Loop Update (Direct Movement Calculation)
+// Main Game Loop Update (Direct Movement Calculation + Velocity sync for Animations)
 function update(dt: number): void {
   const transform = world.getComponent(player.id, TransformComponent)!;
+  const velocity = world.getComponent(player.id, VelocityComponent)!;
   const pPos = transform.position;
-  const moveSpeed = 460; // pixels per second
+  const moveSpeed = 460;
 
   const moveDir = new Vector2(0, 0);
 
-  // Check Keyboard Input (Code-based) or D-Pad Hold
   if (keyCodes['KeyW'] || keyCodes['ArrowUp'] || dpadHold.up) moveDir.y -= 1;
   if (keyCodes['KeyS'] || keyCodes['ArrowDown'] || dpadHold.down) moveDir.y += 1;
   if (keyCodes['KeyA'] || keyCodes['ArrowLeft'] || dpadHold.left) moveDir.x -= 1;
@@ -497,16 +511,21 @@ function update(dt: number): void {
 
   if (moveDir.lengthSq() > 0) {
     targetDestination = null;
-    moveDir.normalize().multiplyScalar(moveSpeed * dt);
-    transform.position.add(moveDir);
+    moveDir.normalize();
+    velocity.velocity.copy(moveDir).multiplyScalar(moveSpeed);
+    transform.position.add(moveDir.multiplyScalar(moveSpeed * dt));
   } else if (targetDestination) {
     const dist = pPos.distanceTo(targetDestination);
     if (dist > 10) {
-      const step = new Vector2().subVectors(targetDestination, pPos).normalize().multiplyScalar(moveSpeed * dt);
-      transform.position.add(step);
+      const dir = new Vector2().subVectors(targetDestination, pPos).normalize();
+      velocity.velocity.copy(dir).multiplyScalar(moveSpeed);
+      transform.position.add(dir.multiplyScalar(moveSpeed * dt));
     } else {
-      targetDestination = null; // Reached click destination
+      velocity.velocity.set(0, 0);
+      targetDestination = null;
     }
+  } else {
+    velocity.velocity.set(0, 0);
   }
 
   // Enemy AI Movement & Attack
@@ -517,15 +536,20 @@ function update(dt: number): void {
     if (mob.id === player.id) continue;
 
     const mTrans = world.getComponent(mob.id, TransformComponent)!;
+    const mVel = world.getComponent(mob.id, VelocityComponent);
     const dist = mTrans.position.distanceTo(pPos);
 
     if (dist < 450 && dist > 45) {
-      const step = new Vector2().subVectors(pPos, mTrans.position).normalize().multiplyScalar(140 * dt);
-      mTrans.position.add(step);
-    } else if (dist <= 45) {
-      const playerHp = world.getComponent(player.id, HealthComponent)!;
-      playerHp.takeDamage(5 * dt * 8);
-      renderer.camera.shake(0.05, 3);
+      const dir = new Vector2().subVectors(pPos, mTrans.position).normalize();
+      if (mVel) mVel.velocity.copy(dir).multiplyScalar(140);
+      mTrans.position.add(dir.multiplyScalar(140 * dt));
+    } else {
+      if (mVel) mVel.velocity.set(0, 0);
+      if (dist <= 45) {
+        const playerHp = world.getComponent(player.id, HealthComponent)!;
+        playerHp.takeDamage(5 * dt * 8);
+        renderer.camera.shake(0.05, 3);
+      }
     }
   }
 
@@ -579,4 +603,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Instant Responsive Button Engine Active!');
+console.log('✅ Aetheria Animated Icon Game Engine Active!');

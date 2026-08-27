@@ -19,7 +19,7 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Ultra-Smooth Movement Engine...');
+console.log('⚡ Initializing Aetheria Rock-Solid Multi-Input Game Engine...');
 
 // Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -43,8 +43,9 @@ let playerMaxExp = 500;
 let playerLevel = 1;
 let questKills = 0;
 
-// Movement State
+// Movement Controls State
 let targetDestination: Vector2 | null = null;
+let isMouseCanvasHolding: boolean = false;
 const dpadHold: Record<string, boolean> = { up: false, down: false, left: false, right: false };
 
 // Hero Spawn Position (Centered at 1200, 1200)
@@ -142,40 +143,53 @@ offsets.forEach((off, i) => {
   spawnMonster(i % 3 === 0 ? 'lich' : i % 2 === 0 ? 'goblin' : 'skeleton', spawnX + off.x, spawnY + off.y);
 });
 
-// Keyboard Controls (Prevent Page Scroll!)
-const keys: Record<string, boolean> = {};
+// Keyboard Controls (Uses e.code for 100% reliability regardless of CapsLock/Layout)
+const keyCodes: Record<string, boolean> = {};
 
 window.addEventListener('keydown', (e) => {
-  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
     e.preventDefault();
   }
 
-  keys[e.key] = true;
+  keyCodes[e.code] = true;
   AudioManager.getInstance().init();
 
   targetDestination = null; // Keyboard overrides mouse click target
 
   if (e.code === 'Space') castMeleeAttack();
-  if (e.key === '1') castFireball();
-  if (e.key === '2') castFrostNova();
-  if (e.key === '3') castLightning();
-  if (e.key === '4') castAetherShield();
-  if (e.key === '5') usePotion();
+  if (e.code === 'Digit1' || e.code === 'Numpad1') castFireball();
+  if (e.code === 'Digit2' || e.code === 'Numpad2') castFrostNova();
+  if (e.code === 'Digit3' || e.code === 'Numpad3') castLightning();
+  if (e.code === 'Digit4' || e.code === 'Numpad4') castAetherShield();
+  if (e.code === 'Digit5' || e.code === 'Numpad5') usePotion();
 });
 
 window.addEventListener('keyup', (e) => {
-  keys[e.key] = false;
+  keyCodes[e.code] = false;
 });
 
-// Clickable On-Screen Action Hotbar Slots
-document.getElementById('slot-attack')?.addEventListener('click', castMeleeAttack);
-document.getElementById('slot-1')?.addEventListener('click', castFireball);
-document.getElementById('slot-2')?.addEventListener('click', castFrostNova);
-document.getElementById('slot-3')?.addEventListener('click', castLightning);
-document.getElementById('slot-4')?.addEventListener('click', castAetherShield);
-document.getElementById('slot-5')?.addEventListener('click', usePotion);
+// Action Hotbar Slot Click & Pointer Listeners
+const bindActionSlot = (id: string, action: () => void) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    action();
+  });
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    action();
+  });
+};
 
-// On-Screen Movement D-Pad Controller Handling (Supports Hold & Tap)
+bindActionSlot('slot-attack', castMeleeAttack);
+bindActionSlot('slot-1', castFireball);
+bindActionSlot('slot-2', castFrostNova);
+bindActionSlot('slot-3', castLightning);
+bindActionSlot('slot-4', castAetherShield);
+bindActionSlot('slot-5', usePotion);
+
+// On-Screen Movement D-Pad Controller Handling (Supports Mouse, Pointer, and Touch Events)
 const setupDpadBtn = (id: string, dir: string) => {
   const btn = document.getElementById(id);
   if (!btn) return;
@@ -192,6 +206,10 @@ const setupDpadBtn = (id: string, dir: string) => {
     dpadHold[dir] = false;
   };
 
+  btn.addEventListener('pointerdown', startHold);
+  btn.addEventListener('pointerup', stopHold);
+  btn.addEventListener('pointerleave', stopHold);
+  btn.addEventListener('pointercancel', stopHold);
   btn.addEventListener('mousedown', startHold);
   btn.addEventListener('mouseup', stopHold);
   btn.addEventListener('mouseleave', stopHold);
@@ -204,11 +222,10 @@ setupDpadBtn('btn-move-down', 'down');
 setupDpadBtn('btn-move-left', 'left');
 setupDpadBtn('btn-move-right', 'right');
 
-// Canvas Direct Click-to-Move Handler
-canvas.addEventListener('click', (e) => {
-  AudioManager.getInstance().init();
+// Canvas Pointer/Mouse Destination & Follow Handling
+const setTargetFromScreen = (clientX: number, clientY: number) => {
   const rect = canvas.getBoundingClientRect();
-  const clickScreen = new Vector2(e.clientX - rect.left, e.clientY - rect.top);
+  const clickScreen = new Vector2(clientX - rect.left, clientY - rect.top);
   const worldPos = renderer.camera.screenToWorld(clickScreen);
 
   // Check if Level Editor Studio is active
@@ -238,11 +255,29 @@ canvas.addEventListener('click', (e) => {
       renderer.addFloatingText('Lich Boss Spawned!', worldPos.x, worldPos.y, '#a855f7');
     }
   } else {
-    // Normal Gameplay: Direct Click-to-Move!
+    // Normal Gameplay: Direct Click or Drag-to-Move!
     targetDestination = worldPos.clone();
-    renderer.addFloatingText('📍 Move Here', worldPos.x, worldPos.y, '#38bdf8', 0.9);
+  }
+};
+
+canvas.addEventListener('pointerdown', (e) => {
+  AudioManager.getInstance().init();
+  isMouseCanvasHolding = true;
+  setTargetFromScreen(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if (isMouseCanvasHolding) {
+    setTargetFromScreen(e.clientX, e.clientY);
   }
 });
+
+const stopMouseCanvas = () => {
+  isMouseCanvasHolding = false;
+};
+
+canvas.addEventListener('pointerup', stopMouseCanvas);
+canvas.addEventListener('pointerleave', stopMouseCanvas);
 
 // Window Resize Listener
 window.addEventListener('resize', () => {
@@ -422,7 +457,7 @@ setTimeout(() => {
   renderer.addFloatingText('✨ Use WASD, D-Pad Buttons, or Click Map to move Hero!', spawnX, spawnY - 60, '#fde047', 1.4);
 }, 300);
 
-// Main Game Loop Update (Direct Smooth Movement Calculation)
+// Main Game Loop Update (Direct Movement Calculation)
 function update(dt: number): void {
   const transform = world.getComponent(player.id, TransformComponent)!;
   const pPos = transform.position;
@@ -430,11 +465,11 @@ function update(dt: number): void {
 
   const moveDir = new Vector2(0, 0);
 
-  // Check Keyboard Input
-  if (keys['w'] || keys['W'] || keys['ArrowUp'] || dpadHold.up) moveDir.y -= 1;
-  if (keys['s'] || keys['S'] || keys['ArrowDown'] || dpadHold.down) moveDir.y += 1;
-  if (keys['a'] || keys['A'] || keys['ArrowLeft'] || dpadHold.left) moveDir.x -= 1;
-  if (keys['d'] || keys['D'] || keys['ArrowRight'] || dpadHold.right) moveDir.x += 1;
+  // Check Keyboard Input (Code-based)
+  if (keyCodes['KeyW'] || keyCodes['ArrowUp'] || dpadHold.up) moveDir.y -= 1;
+  if (keyCodes['KeyS'] || keyCodes['ArrowDown'] || dpadHold.down) moveDir.y += 1;
+  if (keyCodes['KeyA'] || keyCodes['ArrowLeft'] || dpadHold.left) moveDir.x -= 1;
+  if (keyCodes['KeyD'] || keyCodes['ArrowRight'] || dpadHold.right) moveDir.x += 1;
 
   if (moveDir.lengthSq() > 0) {
     targetDestination = null;
@@ -520,4 +555,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Ultra-Smooth Direct Movement Engine Running!');
+console.log('✅ Aetheria Multi-Input Engine Active!');

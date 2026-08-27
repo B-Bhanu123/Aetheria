@@ -19,7 +19,7 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Animated Icon Game Engine...');
+console.log('⚡ Initializing Aetheria Interactive Modal & Equipment Engine...');
 
 // Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -67,7 +67,7 @@ const playerPos = () => world.getComponent(player.id, TransformComponent)!.posit
 renderer.camera.position.set(spawnX, spawnY);
 renderer.camera.target = playerPos();
 
-// Inventory Setup
+// Inventory & Equipment Setup
 const playerInventory = new Inventory(24);
 playerInventory.addItem(ItemDatabase.createItem('sword_aether')!);
 playerInventory.addItem(ItemDatabase.createItem('staff_arcane')!);
@@ -81,13 +81,25 @@ const renderInventory = () => {
       const hp = world.getComponent(player.id, HealthComponent);
       if (hp) {
         hp.heal(150);
-        renderer.addFloatingText('+150 HP', playerPos().x, playerPos().y - 20, '#22c55e');
+        renderer.addFloatingText('+150 HP', playerPos().x, playerPos().y - 20, '#22c55e', 1.3);
         SoundSynth.playItemPickup();
         playerInventory.removeItem(slotIndex, 1);
         renderInventory();
       }
+    } else if (item && item.type === 'weapon') {
+      uiManager.equipItemSlot('equip-weapon', item.name, item.icon);
+      renderer.addFloatingText(`Equipped ${item.name}!`, playerPos().x, playerPos().y - 20, '#fde047', 1.3);
+      SoundSynth.playItemPickup();
+    } else if (item && item.type === 'ring') {
+      uiManager.equipItemSlot('equip-ring', item.name, item.icon);
+      renderer.addFloatingText(`Equipped ${item.name}!`, playerPos().x, playerPos().y - 20, '#fde047', 1.3);
+      SoundSynth.playItemPickup();
+    } else if (item && item.type === 'armor') {
+      uiManager.equipItemSlot('equip-armor', item.name, item.icon);
+      renderer.addFloatingText(`Equipped ${item.name}!`, playerPos().x, playerPos().y - 20, '#fde047', 1.3);
+      SoundSynth.playItemPickup();
     } else if (item) {
-      renderer.addFloatingText(`Equipped ${item.name}`, playerPos().x, playerPos().y - 20, '#fde047');
+      renderer.addFloatingText(`Equipped ${item.name}!`, playerPos().x, playerPos().y - 20, '#fde047', 1.3);
       SoundSynth.playItemPickup();
     }
   });
@@ -255,38 +267,17 @@ setupDpadBtn('btn-move-right', 'right');
 
 // Canvas Pointer/Mouse Destination & Follow Handling
 const setTargetFromScreen = (clientX: number, clientY: number) => {
+  // Check if any modal window is currently open
+  const modalContainer = document.getElementById('modal-container');
+  if (modalContainer && !modalContainer.classList.contains('hidden')) {
+    return; // Don't move hero when clicking inside open modal window
+  }
+
   const rect = canvas.getBoundingClientRect();
   const clickScreen = new Vector2(clientX - rect.left, clientY - rect.top);
   const worldPos = renderer.camera.screenToWorld(clickScreen);
 
-  const editorWindow = document.getElementById('window-editor');
-  const isEditorActive = editorWindow && !editorWindow.classList.contains('hidden');
-
-  if (isEditorActive) {
-    const gx = Math.floor(worldPos.x / tileSize);
-    const gy = Math.floor(worldPos.y / tileSize);
-    const tool = uiManager.activeEditorTool;
-
-    if (tool === 'paint') {
-      if (gx >= 0 && gx < dungeonWidth && gy >= 0 && gy < dungeonHeight) {
-        dungeonGrid[gx][gy] = 0;
-        renderer.addFloatingText('Wall Painted', worldPos.x, worldPos.y, '#fde047');
-      }
-    } else if (tool === 'floor') {
-      if (gx >= 0 && gx < dungeonWidth && gy >= 0 && gy < dungeonHeight) {
-        dungeonGrid[gx][gy] = 1;
-        renderer.addFloatingText('Floor Painted', worldPos.x, worldPos.y, '#38bdf8');
-      }
-    } else if (tool === 'spawn-mob') {
-      spawnMonster('skeleton', worldPos.x, worldPos.y);
-      renderer.addFloatingText('Skeleton Spawned!', worldPos.x, worldPos.y, '#ef4444');
-    } else if (tool === 'spawn-boss') {
-      spawnMonster('lich', worldPos.x, worldPos.y);
-      renderer.addFloatingText('Lich Boss Spawned!', worldPos.x, worldPos.y, '#a855f7');
-    }
-  } else {
-    targetDestination = worldPos.clone();
-  }
+  targetDestination = worldPos.clone();
 };
 
 canvas.addEventListener('pointerdown', (e) => {
@@ -318,14 +309,18 @@ window.addEventListener('resize', () => {
 
 // UI Upgrades & Quest Buttons
 document.querySelectorAll('.btn-upgrade-skill').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     playerGold += 100;
     renderer.addFloatingText('Skill Upgraded! (+Stat Bonus)', playerPos().x, playerPos().y - 30, '#fde047');
     SoundSynth.playItemPickup();
   });
 });
 
-document.getElementById('btn-claim-quest')?.addEventListener('click', () => {
+document.getElementById('btn-claim-quest')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
   playerGold += 250;
   playerExp += 500;
   renderer.addFloatingText('+500 XP +250 Gold Reward!', playerPos().x, playerPos().y - 30, '#22c55e');
@@ -333,7 +328,9 @@ document.getElementById('btn-claim-quest')?.addEventListener('click', () => {
   alert('🎉 Quest Completed! Claimed 500 XP and 250 Gold!');
 });
 
-document.getElementById('btn-gen-new-dungeon')?.addEventListener('click', () => {
+document.getElementById('btn-gen-new-dungeon')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
   dungeonGrid = generateFullDungeon(Math.floor(Math.random() * 1000));
   renderer.addFloatingText('Dungeon Regenerated!', playerPos().x, playerPos().y - 30, '#38bdf8');
 });
@@ -492,10 +489,10 @@ function killMonster(id: number, pos: Vector2): void {
 
 // Initial Float Banner
 setTimeout(() => {
-  renderer.addFloatingText('✨ Click ▲ ◄ ▼ ► Buttons or WASD to move Hero!', spawnX, spawnY - 60, '#fde047', 1.4);
+  renderer.addFloatingText('✨ Click Inventory (I), Skills (K), or Quests (Q) to open!', spawnX, spawnY - 60, '#fde047', 1.4);
 }, 300);
 
-// Main Game Loop Update (Direct Movement Calculation + Velocity sync for Animations)
+// Main Game Loop Update
 function update(dt: number): void {
   const transform = world.getComponent(player.id, TransformComponent)!;
   const velocity = world.getComponent(player.id, VelocityComponent)!;
@@ -603,4 +600,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Animated Icon Game Engine Active!');
+console.log('✅ Aetheria Modal & Equipment Engine Running!');

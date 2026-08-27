@@ -12,6 +12,7 @@ export class UIManager {
   private editorWindow: HTMLElement;
 
   public activeEditorTool: string = 'paint';
+  public equippedItems: Record<string, string> = {};
 
   constructor() {
     this.modalContainer = document.getElementById('modal-container')!;
@@ -25,17 +26,43 @@ export class UIManager {
   }
 
   private bindEvents(): void {
-    document.getElementById('btn-guide')?.addEventListener('click', () => this.toggleWindow(this.guideWindow));
-    document.getElementById('btn-inventory')?.addEventListener('click', () => this.toggleWindow(this.inventoryWindow));
-    document.getElementById('btn-skills')?.addEventListener('click', () => this.toggleWindow(this.skillsWindow));
-    document.getElementById('btn-quest')?.addEventListener('click', () => this.toggleWindow(this.questsWindow));
-    document.getElementById('btn-editor')?.addEventListener('click', () => this.toggleWindow(this.editorWindow));
+    const bindBtn = (id: string, win: HTMLElement) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const handler = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        AudioManager.getInstance().init();
+        this.toggleWindow(win);
+      };
+      btn.addEventListener('pointerdown', handler);
+      btn.addEventListener('click', handler);
+    };
+
+    bindBtn('btn-guide', this.guideWindow);
+    bindBtn('btn-inventory', this.inventoryWindow);
+    bindBtn('btn-skills', this.skillsWindow);
+    bindBtn('btn-quest', this.questsWindow);
+    bindBtn('btn-editor', this.editorWindow);
 
     document.querySelectorAll('.close-btn').forEach(btn => {
-      btn.addEventListener('click', () => this.closeAllModals());
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeAllModals();
+      });
     });
 
-    document.getElementById('btn-settings')?.addEventListener('click', () => {
+    // Close modal when clicking dark backdrop area outside window
+    this.modalContainer.addEventListener('click', (e) => {
+      if (e.target === this.modalContainer) {
+        this.closeAllModals();
+      }
+    });
+
+    document.getElementById('btn-settings')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       AudioManager.getInstance().init();
       const muted = AudioManager.getInstance().toggleMute();
       alert(muted ? '🔊 Sound Muted' : '🔊 Sound Enabled');
@@ -78,16 +105,29 @@ export class UIManager {
       if (item) {
         slotDiv.innerHTML = `<span>${item.icon}</span>`;
         slotDiv.title = `${item.name} (${item.rarity.toUpperCase()})\nClick to Use / Equip`;
-        slotDiv.addEventListener('click', () => onUseItem(i));
+        slotDiv.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onUseItem(i);
+        });
       }
       grid.appendChild(slotDiv);
     }
   }
 
+  public equipItemSlot(slotId: string, itemName: string, icon: string): void {
+    const slotEl = document.getElementById(slotId);
+    if (!slotEl) return;
+    this.equippedItems[slotId] = itemName;
+    slotEl.classList.add('equipped');
+    slotEl.innerHTML = `${icon} ${itemName}`;
+  }
+
   public toggleWindow(win: HTMLElement): void {
-    const isHidden = win.classList.contains('hidden');
+    const isCurrentlyOpen = !win.classList.contains('hidden');
     this.closeAllModals();
-    if (isHidden) {
+
+    if (!isCurrentlyOpen) {
       this.modalContainer.classList.remove('hidden');
       win.classList.remove('hidden');
     }

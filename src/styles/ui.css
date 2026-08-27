@@ -6,6 +6,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  pointer-events: auto;
 }
 
 .character-portrait {
@@ -174,6 +175,7 @@
   margin-bottom: 20px;
   display: flex;
   justify-content: center;
+  pointer-events: auto;
 }
 
 .action-bar-container {
@@ -249,6 +251,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  pointer-events: auto;
 }
 
 #minimap-canvas {
@@ -263,4 +266,192 @@
   font-size: 0.75rem;
   font-family: var(--font-heading);
   color: #fef08a;
+}
+
+/* Modal Overlay System */
+#modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  background: rgba(3, 7, 18, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.game-window {
+  width: 90%;
+  max-width: 680px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid var(--border-gold);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px var(--border-glow);
+  overflow: hidden;
+  animation: modalPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPop {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.window-header {
+  padding: 14px 20px;
+  background: linear-gradient(90deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.window-header h3 {
+  font-family: var(--font-heading);
+  color: #fef08a;
+  font-size: 1.15rem;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.8rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.close-btn:hover {
+  color: #ef4444;
+}
+
+.window-body {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* Inventory & Equipment Paperdoll */
+.inventory-grid-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+}
+
+.equipment-paperdoll {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.equip-slot {
+  height: 60px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px dashed rgba(245, 158, 11, 0.5);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.equip-slot.equipped {
+  border-style: solid;
+  border-color: var(--border-gold);
+  background: rgba(245, 158, 11, 0.2);
+  color: #fef08a;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+
+.inventory-slots {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.item-slot {
+  aspect-ratio: 1;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.6rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.item-slot:hover {
+  border-color: var(--primary-accent);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+  transform: scale(1.08);
+}
+
+/* Skill Tree Grid */
+.skill-tree-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skill-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(30, 41, 59, 0.6);
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+
+.skill-card-icon {
+  font-size: 2.2rem;
+}
+
+.skill-card-info h4 {
+  font-family: var(--font-heading);
+  color: #fef08a;
+}
+
+.skill-card-info p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* Guide Table */
+.guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.guide-table th, .guide-table td {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.guide-table th {
+  background: rgba(30, 41, 59, 0.8);
+  color: #fde047;
+  font-family: var(--font-heading);
 }

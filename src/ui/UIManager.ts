@@ -102,7 +102,7 @@ export class UIManager {
     this.editorWindow.classList.add('hidden');
   }
 
-  public updateHUD(hp: number, maxHp: number, mp: number, maxMp: number, exp: number, maxExp: number, level: number, gold: number): void {
+  public updateHUD(hp: number, maxHp: number, mp: number, maxMp: number, exp: number, maxExp: number, level: number, gold: number, kills: number): void {
     const hpBar = document.getElementById('hp-bar');
     const hpText = document.getElementById('hp-text');
     const mpBar = document.getElementById('mp-bar');
@@ -111,6 +111,7 @@ export class UIManager {
     const expText = document.getElementById('exp-text');
     const lvlText = document.getElementById('player-level');
     const goldText = document.getElementById('player-gold');
+    const killsText = document.getElementById('player-kills');
 
     if (hpBar) hpBar.style.width = `${Math.max(0, (hp / maxHp)) * 100}%`;
     if (hpText) hpText.textContent = `${Math.round(hp)} / ${maxHp}`;
@@ -120,5 +121,6 @@ export class UIManager {
     if (expText) expText.textContent = `${exp} / ${maxExp}`;
     if (lvlText) lvlText.textContent = level.toString();
     if (goldText) goldText.textContent = `💰 ${gold} Gold`;
+    if (killsText) killsText.textContent = `💀 ${kills} Kills`;
   }
 }

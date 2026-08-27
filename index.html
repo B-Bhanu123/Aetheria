@@ -25,7 +25,11 @@
           <div class="portrait-avatar" id="player-avatar">🧙‍♂️</div>
           <div class="portrait-details">
             <h2 id="player-name">Archmage Valerius</h2>
-            <div class="level-badge">LVL <span id="player-level">1</span> | <span id="player-gold" class="gold-text">💰 250 Gold</span></div>
+            <div class="level-badge">
+              LVL <span id="player-level">1</span> | 
+              <span id="player-gold" class="gold-text">💰 250 Gold</span> |
+              <span id="player-kills" class="kill-text">💀 0 Kills</span>
+            </div>
           </div>
         </div>
 
@@ -57,7 +61,7 @@
         </div>
       </div>
 
-      <!-- On-Screen Virtual D-Pad & Clickable Controls for Mouse/Touch -->
+      <!-- On-Screen Virtual D-Pad Controller -->
       <div id="virtual-dpad" class="glass-panel">
         <div class="dpad-title">🕹️ Move Hero</div>
         <div class="dpad-grid">
@@ -120,17 +124,14 @@
       <!-- Interactive Modals / Windows -->
       <div id="modal-container" class="hidden">
 
-        <!-- How To Play / Complete Guide Window -->
+        <!-- How To Play Guide Window -->
         <div id="window-guide" class="game-window glass-panel hidden">
           <div class="window-header">
             <h3>📖 How To Play Aetheria (Guide & Controls)</h3>
             <button class="close-btn">&times;</button>
           </div>
           <div class="window-body guide-content">
-            <h4>🎮 2 Ways To Play & Controls</h4>
-            <p style="margin-bottom: 12px; color: #fde047; font-size: 0.9rem;">
-              You can play using <strong>Keyboard Keys</strong> OR <strong>Mouse / Touch Screen Buttons</strong> on screen!
-            </p>
+            <h4>🎮 Controls & Keyboard Shortcuts</h4>
             <table class="guide-table">
               <thead>
                 <tr>
@@ -141,14 +142,14 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>Keyboard / Arrow Keys</td>
+                  <td>Keyboard Navigation</td>
                   <td><span class="kbd">W</span> <span class="kbd">A</span> <span class="kbd">S</span> <span class="kbd">D</span> or <span class="kbd">↑</span> <span class="kbd">↓</span> <span class="kbd">←</span> <span class="kbd">→</span></td>
-                  <td>Move Hero on Map</td>
+                  <td>Move Hero on Dungeon Map</td>
                 </tr>
                 <tr>
-                  <td>Mouse Click / Touch</td>
-                  <td>🕹️ On-Screen D-Pad (Bottom-Left)</td>
-                  <td>Click buttons to move Hero</td>
+                  <td>On-Screen D-Pad</td>
+                  <td>🕹️ D-Pad (Bottom-Left)</td>
+                  <td>Click / Touch to Move Hero</td>
                 </tr>
                 <tr>
                   <td>Melee Attack</td>
@@ -157,7 +158,7 @@
                 </tr>
                 <tr>
                   <td>Spells 1 - 4</td>
-                  <td><span class="kbd">1</span> <span class="kbd">2</span> <span class="kbd">3</span> <span class="kbd">4</span> or Click Spell Icons</td>
+                  <td><span class="kbd">1</span> <span class="kbd">2</span> <span class="kbd">3</span> <span class="kbd">4</span> or Click Icons</td>
                   <td>Fireball 🔥, Frost Nova ❄️, Lightning ⚡, Shield 🛡️</td>
                 </tr>
                 <tr>
@@ -168,7 +169,7 @@
                 <tr>
                   <td>Open Windows</td>
                   <td><span class="kbd">I</span> (Inventory) | <span class="kbd">K</span> (Skills) | <span class="kbd">Q</span> (Quests) | <span class="kbd">E</span> (Editor)</td>
-                  <td>Toggle Inventory, Skill Tree, Quest Log, Level Studio</td>
+                  <td>Toggle Modals</td>
                 </tr>
               </tbody>
             </table>
@@ -210,7 +211,7 @@
                 <div class="skill-card-info">
                   <h4>Fireball Mastery</h4>
                   <p>Increases Fireball damage by +25% and reduces MP cost.</p>
-                  <button class="ui-btn gold btn-upgrade-skill" data-skill="fireball">Upgrade Skill (+1)</button>
+                  <button class="ui-btn gold btn-upgrade-skill">Upgrade Skill (+1)</button>
                 </div>
               </div>
               <div class="skill-card">
@@ -218,7 +219,7 @@
                 <div class="skill-card-info">
                   <h4>Glacial Nova</h4>
                   <p>Extends freeze duration and adds area frost slow.</p>
-                  <button class="ui-btn gold btn-upgrade-skill" data-skill="frost">Upgrade Skill (+1)</button>
+                  <button class="ui-btn gold btn-upgrade-skill">Upgrade Skill (+1)</button>
                 </div>
               </div>
               <div class="skill-card">
@@ -226,7 +227,7 @@
                 <div class="skill-card-info">
                   <h4>Overcharge Lightning</h4>
                   <p>Adds chain bounce to 3 additional enemy targets.</p>
-                  <button class="ui-btn gold btn-upgrade-skill" data-skill="lightning">Upgrade Skill (+1)</button>
+                  <button class="ui-btn gold btn-upgrade-skill">Upgrade Skill (+1)</button>
                 </div>
               </div>
             </div>
@@ -251,7 +252,7 @@
           </div>
         </div>
 
-        <!-- Level Editor Palette & Tools -->
+        <!-- Level Editor Studio -->
         <div id="window-editor" class="game-window glass-panel hidden">
           <div class="window-header">
             <h3>⚒️ Level Studio & Map Painter</h3>

@@ -129,7 +129,7 @@ const keys: Record<string, boolean> = {};
 
 window.addEventListener('keydown', (e) => {
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
-    e.preventDefault(); // Prevent browser scrolling
+    e.preventDefault();
   }
 
   keys[e.key] = true;
@@ -261,7 +261,7 @@ function castMeleeAttack(): void {
       const hp = world.getComponent(mob.id, HealthComponent)!;
       const dmg = Math.floor(45 + Math.random() * 35);
       hp.takeDamage(dmg);
-      renderer.addFloatingText(`-${dmg}`, mPos.x, mPos.y - 15, '#ef4444');
+      renderer.addFloatingText(`-${dmg}`, mPos.x, mPos.y - 15, '#ef4444', 1.2);
 
       if (!hp.isAlive()) killMonster(mob.id, mPos);
     }
@@ -287,7 +287,7 @@ function castFireball(): void {
       const hp = world.getComponent(mob.id, HealthComponent)!;
       const dmg = Math.floor(85 + Math.random() * 45);
       hp.takeDamage(dmg);
-      renderer.addFloatingText(`🔥 -${dmg}`, mPos.x, mPos.y - 20, '#f97316');
+      renderer.addFloatingText(`🔥 -${dmg}`, mPos.x, mPos.y - 20, '#f97316', 1.4);
 
       if (!hp.isAlive()) killMonster(mob.id, mPos);
     }
@@ -310,7 +310,7 @@ function castFrostNova(): void {
     if (pPos.distanceTo(mPos) < 190) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
       hp.takeDamage(60);
-      renderer.addFloatingText(`❄️ FROZEN -60`, mPos.x, mPos.y - 20, '#38bdf8');
+      renderer.addFloatingText(`❄️ FROZEN -60`, mPos.x, mPos.y - 20, '#38bdf8', 1.3);
 
       if (!hp.isAlive()) killMonster(mob.id, mPos);
     }
@@ -333,7 +333,7 @@ function castLightning(): void {
     if (pPos.distanceTo(mPos) < 260) {
       const hp = world.getComponent(mob.id, HealthComponent)!;
       hp.takeDamage(100);
-      renderer.addFloatingText(`⚡ -100`, mPos.x, mPos.y - 20, '#eab308');
+      renderer.addFloatingText(`⚡ -100`, mPos.x, mPos.y - 20, '#eab308', 1.5);
 
       if (!hp.isAlive()) killMonster(mob.id, mPos);
     }
@@ -347,13 +347,13 @@ function castAetherShield(): void {
   SoundSynth.playSpellCast();
   const hp = world.getComponent(player.id, HealthComponent)!;
   hp.shield += 130;
-  renderer.addFloatingText(`🛡️ +130 Shield`, playerPos().x, playerPos().y - 25, '#38bdf8');
+  renderer.addFloatingText(`🛡️ +130 Shield`, playerPos().x, playerPos().y - 25, '#38bdf8', 1.3);
 }
 
 function usePotion(): void {
   const hp = world.getComponent(player.id, HealthComponent)!;
   hp.heal(150);
-  renderer.addFloatingText(`🧪 +150 HP`, playerPos().x, playerPos().y - 25, '#22c55e');
+  renderer.addFloatingText(`🧪 +150 HP`, playerPos().x, playerPos().y - 25, '#22c55e', 1.3);
   SoundSynth.playItemPickup();
 }
 
@@ -366,7 +366,14 @@ function killMonster(id: number, pos: Vector2): void {
   const progressEl = document.getElementById('q-progress');
   if (progressEl) progressEl.textContent = Math.min(5, questKills).toString();
 
-  renderer.addFloatingText('+80 XP +40 Gold', pos.x, pos.y, '#fde047');
+  renderer.addFloatingText('+80 XP +40 Gold', pos.x, pos.y, '#fde047', 1.2);
+
+  // Respawn a new monster so the dungeon is always full of action!
+  setTimeout(() => {
+    const rx = (4 + Math.floor(Math.random() * 25)) * tileSize;
+    const ry = (4 + Math.floor(Math.random() * 25)) * tileSize;
+    spawnMonster(Math.random() > 0.5 ? 'goblin' : 'skeleton', rx, ry);
+  }, 3000);
 
   if (playerExp >= playerMaxExp) {
     playerLevel++;
@@ -374,22 +381,22 @@ function killMonster(id: number, pos: Vector2): void {
     playerMaxExp += 250;
     const hp = world.getComponent(player.id, HealthComponent)!;
     hp.current = hp.max += 100;
-    renderer.addFloatingText('🎉 LEVEL UP!', playerPos().x, playerPos().y - 40, '#fde047');
+    renderer.addFloatingText('🎉 LEVEL UP!', playerPos().x, playerPos().y - 40, '#fde047', 2.0);
     SoundSynth.playSpellCast();
   }
 }
 
 // Initial Floating Welcome Banner
 setTimeout(() => {
-  renderer.addFloatingText('✨ Game Ready! Press WASD / Arrow Keys or Click D-Pad to move!', 600, 550, '#fde047');
-}, 500);
+  renderer.addFloatingText('✨ Game Ready! Use WASD or D-Pad to move & attack!', 600, 550, '#fde047', 1.4);
+}, 300);
 
 // Main Game Loop Update
 function update(dt: number): void {
   const vel = world.getComponent(player.id, VelocityComponent);
   const pPos = playerPos();
 
-  // Combine Keyboard & Virtual D-Pad Movement Controls
+  // Movement Controls
   if (vel) {
     const move = new Vector2();
     if (keys['w'] || keys['W'] || keys['ArrowUp'] || dpadPress.up) move.y -= 1;
@@ -424,23 +431,27 @@ function update(dt: number): void {
     }
   }
 
-  // Mana Regen
+  // Mana & HP Passive Regeneration Out-of-Combat
   if (playerMana < maxMana) {
     playerMana = Math.min(maxMana, playerMana + 18 * dt);
+  }
+
+  const hp = world.getComponent(player.id, HealthComponent)!;
+  if (hp.current < hp.max) {
+    hp.current = Math.min(hp.max, hp.current + 2 * dt);
   }
 
   // Update ECS Systems
   world.update(dt);
 
-  // Sync Camera and Particle Systems
+  // Sync Camera & Particles
   renderer.camera.update(dt);
   playerLight.position.copy(pPos);
   auraEmitter.position.copy(pPos);
   particleSystem.update(dt);
 
   // Update HUD Bars
-  const hp = world.getComponent(player.id, HealthComponent)!;
-  uiManager.updateHUD(hp.current, hp.max, playerMana, maxMana, playerExp, playerMaxExp, playerLevel, playerGold);
+  uiManager.updateHUD(hp.current, hp.max, playerMana, maxMana, playerExp, playerMaxExp, playerLevel, playerGold, questKills);
 }
 
 // Main Game Loop Render
@@ -457,4 +468,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Game Engine Running & Virtual Controls Activated!');
+console.log('✅ Aetheria Game Engine Running & Live Gameplay Active!');

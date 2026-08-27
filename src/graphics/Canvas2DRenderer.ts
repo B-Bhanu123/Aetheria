@@ -14,6 +14,7 @@ export interface FloatingText {
   color: string;
   life: number;
   maxLife: number;
+  scale: number;
 }
 
 export class Canvas2DRenderer {
@@ -40,20 +41,21 @@ export class Canvas2DRenderer {
     this.camera.viewportSize.set(width, height);
   }
 
-  public clear(color: string = '#07090e'): void {
+  public clear(color: string = '#0b0f19'): void {
     this.ctx.fillStyle = color;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  public addFloatingText(text: string, x: number, y: number, color: string = '#ef4444'): void {
+  public addFloatingText(text: string, x: number, y: number, color: string = '#ef4444', scale: number = 1.0): void {
     this.floatingTexts.push({
       id: this.nextTextId++,
       text,
       x,
       y,
       color,
-      life: 1.0,
-      maxLife: 1.0
+      life: 1.2,
+      maxLife: 1.2,
+      scale
     });
   }
 
@@ -73,17 +75,29 @@ export class Canvas2DRenderer {
         this.camera.worldToScreen(new Vector2(x * tileSize, y * tileSize), screenPos);
 
         if (tileType === 0) {
-          // Wall Tile
+          // Wall Tile: Dark obsidian stone with gold highlights
           ctx.fillStyle = '#1e293b';
           ctx.fillRect(screenPos.x, screenPos.y, tileSize, tileSize);
+
+          // Wall bevel border
           ctx.strokeStyle = '#334155';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(screenPos.x + 2, screenPos.y + 2, tileSize - 4, tileSize - 4);
+
+          // Brick detail lines
+          ctx.strokeStyle = '#0f172a';
           ctx.lineWidth = 1;
-          ctx.strokeRect(screenPos.x, screenPos.y, tileSize, tileSize);
+          ctx.beginPath();
+          ctx.moveTo(screenPos.x, screenPos.y + tileSize / 2);
+          ctx.lineTo(screenPos.x + tileSize, screenPos.y + tileSize / 2);
+          ctx.stroke();
         } else {
-          // Floor Tile
-          ctx.fillStyle = '#0f172a';
+          // Floor Tile: Deep slate blue with stone texture grid
+          const isCheckered = (x + y) % 2 === 0;
+          ctx.fillStyle = isCheckered ? '#0f172a' : '#111827';
           ctx.fillRect(screenPos.x, screenPos.y, tileSize, tileSize);
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.05)';
           ctx.lineWidth = 1;
           ctx.strokeRect(screenPos.x, screenPos.y, tileSize, tileSize);
         }
@@ -96,7 +110,7 @@ export class Canvas2DRenderer {
     const screenPos = new Vector2();
     const entities = world.query(this.renderQuery);
 
-    // Sort entities by Y position for proper depth sorting
+    // Sort entities by Y position for proper 2.5D depth sorting
     entities.sort((a, b) => {
       const tA = world.getComponent(a.id, TransformComponent)!;
       const tB = world.getComponent(b.id, TransformComponent)!;
@@ -116,44 +130,65 @@ export class Canvas2DRenderer {
       ctx.save();
       ctx.translate(screenPos.x, screenPos.y);
 
-      // Draw Entity Circle / Avatar
+      const isPlayer = entity.name.includes('Player');
+
+      // Drop Shadow under character
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.beginPath();
+      ctx.ellipse(0, render.height / 2 - 4, render.width / 2, render.height / 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Outer Glowing Ring Aura
       ctx.fillStyle = render.color;
       ctx.shadowColor = render.color;
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = isPlayer ? 20 : 10;
 
       ctx.beginPath();
       ctx.arc(0, 0, render.width / 2, 0, Math.PI * 2);
       ctx.fill();
 
-      // Render Entity Emoji / Icon
+      // Inner Core Circle
       ctx.shadowBlur = 0;
-      ctx.font = '20px sans-serif';
+      ctx.fillStyle = isPlayer ? '#ffffff' : '#0f172a';
+      ctx.beginPath();
+      ctx.arc(0, 0, render.width / 2 - 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Render Avatar Emoji Icon
+      ctx.font = isPlayer ? '24px sans-serif' : '20px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const icon = entity.name.includes('Player') ? '🧙‍♂️' : entity.name.includes('Lich') ? '🧟' : entity.name.includes('Goblin') ? '👺' : '💀';
+      const icon = isPlayer ? '🧙‍♂️' : entity.name.includes('Lich') ? '🧟' : entity.name.includes('Goblin') ? '👺' : '💀';
       ctx.fillText(icon, 0, 0);
 
-      // Render Enemy Health Bar above head
-      if (health && !entity.name.includes('Player')) {
-        const barWidth = 40;
+      // Render Enemy Name & Health Bar above head
+      if (health && !isPlayer) {
+        const barWidth = 46;
         const barHeight = 6;
         const hpPercent = Math.max(0, health.current / health.max);
 
+        // Background Bar
         ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(-barWidth / 2, -render.height / 2 - 12, barWidth, barHeight);
+        ctx.fillRect(-barWidth / 2, -render.height / 2 - 16, barWidth, barHeight);
 
-        ctx.fillStyle = hpPercent > 0.5 ? '#22c55e' : hpPercent > 0.2 ? '#eab308' : '#ef4444';
-        ctx.fillRect(-barWidth / 2, -render.height / 2 - 12, barWidth * hpPercent, barHeight);
+        // Health Fill
+        ctx.fillStyle = hpPercent > 0.5 ? '#22c55e' : hpPercent > 0.25 ? '#eab308' : '#ef4444';
+        ctx.fillRect(-barWidth / 2, -render.height / 2 - 16, barWidth * hpPercent, barHeight);
+
+        // Border
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-barWidth / 2, -render.height / 2 - 16, barWidth, barHeight);
       }
 
       ctx.restore();
     }
 
-    // Render Floating Damage Texts
+    // Render Animated Floating Combat Damage Text
     for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
       const ft = this.floatingTexts[i];
       ft.life -= dt;
-      ft.y -= 30 * dt; // Float upwards
+      ft.y -= 40 * dt; // Rise upwards
 
       if (ft.life <= 0) {
         this.floatingTexts.splice(i, 1);
@@ -162,12 +197,16 @@ export class Canvas2DRenderer {
 
       this.camera.worldToScreen(new Vector2(ft.x, ft.y), screenPos);
 
+      const alpha = Math.min(1.0, ft.life / (ft.maxLife * 0.5));
+      const fontSize = Math.round(16 * ft.scale);
+
       ctx.save();
-      ctx.globalAlpha = ft.life / ft.maxLife;
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = ft.color;
-      ctx.font = 'bold 16px "Fira Code", monospace';
-      ctx.shadowColor = '#000';
-      ctx.shadowBlur = 4;
+      ctx.font = `bold ${fontSize}px "Fira Code", monospace`;
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 6;
+      ctx.textAlign = 'center';
       ctx.fillText(ft.text, screenPos.x, screenPos.y);
       ctx.restore();
     }
@@ -177,11 +216,12 @@ export class Canvas2DRenderer {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = '#07090e';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const scale = canvas.width / mapGrid.length;
 
+    // Render Walls
     ctx.fillStyle = '#334155';
     for (let x = 0; x < mapGrid.length; x++) {
       for (let y = 0; y < mapGrid[0].length; y++) {
@@ -191,7 +231,7 @@ export class Canvas2DRenderer {
       }
     }
 
-    // Render player on minimap
+    // Render Entities on MiniMap
     const playerQuery = new Query({ all: [TransformComponent] });
     const entities = world.query(playerQuery);
 
@@ -201,9 +241,13 @@ export class Canvas2DRenderer {
       const gx = (transform.position.x / 64) * scale;
       const gy = (transform.position.y / 64) * scale;
 
-      ctx.fillStyle = entity.name.includes('Player') ? '#38bdf8' : '#ef4444';
+      const isPlayer = entity.name.includes('Player');
+      ctx.fillStyle = isPlayer ? '#38bdf8' : '#ef4444';
+      ctx.shadowColor = isPlayer ? '#38bdf8' : '#ef4444';
+      ctx.shadowBlur = 4;
+
       ctx.beginPath();
-      ctx.arc(gx, gy, entity.name.includes('Player') ? 4 : 2, 0, Math.PI * 2);
+      ctx.arc(gx, gy, isPlayer ? 4 : 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
   }

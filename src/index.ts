@@ -19,7 +19,7 @@ import { Vector2 } from './math/Vector2';
 import { SoundSynth } from './audio/SoundSynth';
 import { AudioManager } from './audio/AudioManager';
 
-console.log('⚡ Initializing Aetheria Direct Click-to-Move Game Engine...');
+console.log('⚡ Initializing Aetheria Ultra-Smooth Movement Engine...');
 
 // Canvas and Window Sizing
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -43,8 +43,9 @@ let playerMaxExp = 500;
 let playerLevel = 1;
 let questKills = 0;
 
-// Hero Target Destination for Direct Click-to-Move
+// Movement State
 let targetDestination: Vector2 | null = null;
+const dpadHold: Record<string, boolean> = { up: false, down: false, left: false, right: false };
 
 // Hero Spawn Position (Centered at 1200, 1200)
 const spawnX = 1200;
@@ -52,7 +53,7 @@ const spawnY = 1200;
 
 const player = world.createEntity('PlayerArchmage');
 world.addComponent(player.id, new TransformComponent(spawnX, spawnY));
-world.addComponent(player.id, new VelocityComponent(0, 0, 480, 0.80));
+world.addComponent(player.id, new VelocityComponent(0, 0, 480, 0.95));
 world.addComponent(player.id, new RenderComponent('player', 44, 44, '#38bdf8', 10));
 world.addComponent(player.id, new HealthComponent(500, 500));
 world.addComponent(player.id, new StatsComponent(15, 20, 12, 10));
@@ -120,7 +121,7 @@ dungeonGrid = generateFullDungeon(101);
 const spawnMonster = (type: string, x: number, y: number) => {
   const mob = world.createEntity(`Monster_${type}_${Date.now()}`);
   world.addComponent(mob.id, new TransformComponent(x, y));
-  world.addComponent(mob.id, new VelocityComponent(0, 0, 150 + Math.random() * 50, 0.85));
+  world.addComponent(mob.id, new VelocityComponent(0, 0, 150 + Math.random() * 50, 0.95));
 
   const isLich = type === 'lich';
   const isGoblin = type === 'goblin';
@@ -152,8 +153,7 @@ window.addEventListener('keydown', (e) => {
   keys[e.key] = true;
   AudioManager.getInstance().init();
 
-  // Clear mouse target destination when keyboard keys are pressed
-  targetDestination = null;
+  targetDestination = null; // Keyboard overrides mouse click target
 
   if (e.code === 'Space') castMeleeAttack();
   if (e.key === '1') castFireball();
@@ -174,6 +174,35 @@ document.getElementById('slot-2')?.addEventListener('click', castFrostNova);
 document.getElementById('slot-3')?.addEventListener('click', castLightning);
 document.getElementById('slot-4')?.addEventListener('click', castAetherShield);
 document.getElementById('slot-5')?.addEventListener('click', usePotion);
+
+// On-Screen Movement D-Pad Controller Handling (Supports Hold & Tap)
+const setupDpadBtn = (id: string, dir: string) => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+
+  const startHold = (e: Event) => {
+    e.preventDefault();
+    dpadHold[dir] = true;
+    targetDestination = null;
+    AudioManager.getInstance().init();
+  };
+
+  const stopHold = (e: Event) => {
+    e.preventDefault();
+    dpadHold[dir] = false;
+  };
+
+  btn.addEventListener('mousedown', startHold);
+  btn.addEventListener('mouseup', stopHold);
+  btn.addEventListener('mouseleave', stopHold);
+  btn.addEventListener('touchstart', startHold, { passive: false });
+  btn.addEventListener('touchend', stopHold, { passive: false });
+};
+
+setupDpadBtn('btn-move-up', 'up');
+setupDpadBtn('btn-move-down', 'down');
+setupDpadBtn('btn-move-left', 'left');
+setupDpadBtn('btn-move-right', 'right');
 
 // Canvas Direct Click-to-Move Handler
 canvas.addEventListener('click', (e) => {
@@ -390,51 +419,50 @@ function killMonster(id: number, pos: Vector2): void {
 
 // Initial Float Banner
 setTimeout(() => {
-  renderer.addFloatingText('✨ Click anywhere on map OR use WASD to move Hero!', spawnX, spawnY - 60, '#fde047', 1.4);
+  renderer.addFloatingText('✨ Use WASD, D-Pad Buttons, or Click Map to move Hero!', spawnX, spawnY - 60, '#fde047', 1.4);
 }, 300);
 
-// Main Game Loop Update
+// Main Game Loop Update (Direct Smooth Movement Calculation)
 function update(dt: number): void {
-  const vel = world.getComponent(player.id, VelocityComponent);
-  const pPos = playerPos();
+  const transform = world.getComponent(player.id, TransformComponent)!;
+  const pPos = transform.position;
+  const moveSpeed = 420; // pixels per second
 
-  // Combine Keyboard WASD Movement & Direct Click-to-Move
-  if (vel) {
-    const move = new Vector2();
-    if (keys['w'] || keys['W'] || keys['ArrowUp']) move.y -= 1;
-    if (keys['s'] || keys['S'] || keys['ArrowDown']) move.y += 1;
-    if (keys['a'] || keys['A'] || keys['ArrowLeft']) move.x -= 1;
-    if (keys['d'] || keys['D'] || keys['ArrowRight']) move.x += 1;
+  const moveDir = new Vector2(0, 0);
 
-    if (move.lengthSq() > 0) {
-      targetDestination = null; // Override mouse click destination with keyboard input
-      move.normalize().multiplyScalar(480);
-      vel.velocity.add(move);
-    } else if (targetDestination) {
-      const dist = pPos.distanceTo(targetDestination);
-      if (dist > 18) {
-        const dir = new Vector2().subVectors(targetDestination, pPos).normalize().multiplyScalar(460);
-        vel.velocity.add(dir);
-      } else {
-        targetDestination = null; // Reached target location
-      }
+  // Check Keyboard Input
+  if (keys['w'] || keys['W'] || keys['ArrowUp'] || dpadHold.up) moveDir.y -= 1;
+  if (keys['s'] || keys['S'] || keys['ArrowDown'] || dpadHold.down) moveDir.y += 1;
+  if (keys['a'] || keys['A'] || keys['ArrowLeft'] || dpadHold.left) moveDir.x -= 1;
+  if (keys['d'] || keys['D'] || keys['ArrowRight'] || dpadHold.right) moveDir.x += 1;
+
+  if (moveDir.lengthSq() > 0) {
+    targetDestination = null;
+    moveDir.normalize().multiplyScalar(moveSpeed * dt);
+    transform.position.add(moveDir);
+  } else if (targetDestination) {
+    const dist = pPos.distanceTo(targetDestination);
+    if (dist > 10) {
+      const step = new Vector2().subVectors(targetDestination, pPos).normalize().multiplyScalar(moveSpeed * dt);
+      transform.position.add(step);
+    } else {
+      targetDestination = null; // Reached click destination
     }
   }
 
   // Enemy AI Movement & Attack
-  const mobs = world.query(new Query({ all: [TransformComponent, VelocityComponent, HealthComponent] }));
+  const mobs = world.query(new Query({ all: [TransformComponent, HealthComponent] }));
 
   for (let i = 0; i < mobs.length; i++) {
     const mob = mobs[i];
     if (mob.id === player.id) continue;
 
-    const mPos = world.getComponent(mob.id, TransformComponent)!.position;
-    const mVel = world.getComponent(mob.id, VelocityComponent)!;
-    const dist = mPos.distanceTo(pPos);
+    const mTrans = world.getComponent(mob.id, TransformComponent)!;
+    const dist = mTrans.position.distanceTo(pPos);
 
     if (dist < 450 && dist > 45) {
-      const dir = new Vector2().subVectors(pPos, mPos).normalize().multiplyScalar(130);
-      mVel.velocity.add(dir);
+      const step = new Vector2().subVectors(pPos, mTrans.position).normalize().multiplyScalar(140 * dt);
+      mTrans.position.add(step);
     } else if (dist <= 45) {
       const playerHp = world.getComponent(player.id, HealthComponent)!;
       playerHp.takeDamage(5 * dt * 8);
@@ -451,9 +479,6 @@ function update(dt: number): void {
   if (hp.current < hp.max) {
     hp.current = Math.min(hp.max, hp.current + 2 * dt);
   }
-
-  // Update ECS Systems
-  world.update(dt);
 
   // Sync Camera & Particles
   renderer.camera.update(dt);
@@ -495,4 +520,4 @@ function render(dt: number): void {
 const gameLoop = new GameLoop(update, render);
 gameLoop.start();
 
-console.log('✅ Aetheria Direct Click-to-Move Game Engine Active!');
+console.log('✅ Aetheria Ultra-Smooth Direct Movement Engine Running!');

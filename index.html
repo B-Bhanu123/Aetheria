@@ -61,6 +61,22 @@
         </div>
       </div>
 
+      <!-- On-Screen Virtual D-Pad Controller -->
+      <div id="virtual-dpad" class="glass-panel">
+        <div class="dpad-title">🕹️ Move Hero</div>
+        <div class="dpad-grid">
+          <div></div>
+          <button class="dpad-btn" id="btn-move-up">▲</button>
+          <div></div>
+          <button class="dpad-btn" id="btn-move-left">◄</button>
+          <div class="dpad-center">🧙‍♂️</div>
+          <button class="dpad-btn" id="btn-move-right">►</button>
+          <div></div>
+          <button class="dpad-btn" id="btn-move-down">▼</button>
+          <div></div>
+        </div>
+      </div>
+
       <!-- Action Bar & Attack Controls -->
       <div id="hud-footer">
         <div class="action-bar-container">
@@ -115,7 +131,7 @@
             <button class="close-btn">&times;</button>
           </div>
           <div class="window-body guide-content">
-            <h4>🎮 Easy Controls Guide</h4>
+            <h4>🎮 3 Ways To Move Hero & Controls</h4>
             <table class="guide-table">
               <thead>
                 <tr>
@@ -126,14 +142,19 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>Mouse Click to Move</td>
-                  <td>Left-Click anywhere on Game Map</td>
-                  <td>Hero moves directly to clicked location</td>
+                  <td>On-Screen D-Pad</td>
+                  <td>🕹️ Click / Hold ▲ ◄ ▼ ► Buttons</td>
+                  <td>Move Hero in 4 directions</td>
                 </tr>
                 <tr>
-                  <td>Keyboard Movement</td>
+                  <td>Keyboard Navigation</td>
                   <td><span class="kbd">W</span> <span class="kbd">A</span> <span class="kbd">S</span> <span class="kbd">D</span> or <span class="kbd">↑</span> <span class="kbd">↓</span> <span class="kbd">←</span> <span class="kbd">→</span></td>
                   <td>Move Hero in 8 directions</td>
+                </tr>
+                <tr>
+                  <td>Mouse Click to Move</td>
+                  <td>Left-Click anywhere on Game Map</td>
+                  <td>Hero walks to clicked location</td>
                 </tr>
                 <tr>
                   <td>Melee Attack</td>
